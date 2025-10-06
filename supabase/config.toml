@@ -1,0 +1,10 @@
+project_id = "kwqoqtsfdxfwrsgbiarb"
+
+[functions.process-document]
+verify_jwt = true
+
+[functions.search-cases]
+verify_jwt = true
+
+[functions.generate-strategy]
+verify_jwt = true
