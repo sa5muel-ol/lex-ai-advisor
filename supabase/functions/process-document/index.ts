@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getDocument } from "https://esm.sh/pdfjs-dist@4.0.379/build/pdf.mjs";
+import { getDocument, GlobalWorkerOptions } from "https://esm.sh/pdfjs-dist@4.4.168/build/pdf.mjs";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,58 +46,109 @@ serve(async (req) => {
 
     // Extract text based on file type
     if (document.file_type === "application/pdf" || document.file_name.endsWith(".pdf")) {
-        // OCR-based extraction for PDFs (works for scanned and text-based)
+        // Try PDF.js text extraction first
         try {
           const arrayBuffer = await fileData.arrayBuffer();
-          const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-          console.log("Using Gemini OCR for PDF text extraction...");
+          // Configure worker for PDF.js in this environment
+          GlobalWorkerOptions.workerSrc = "https://esm.sh/pdfjs-dist@4.4.168/build/pdf.worker.mjs";
+          const pdf = await getDocument({ data: arrayBuffer, isEvalSupported: false }).promise;
+          const textParts: string[] = [];
+          const maxChars = 30000;
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageText = (textContent.items as any[])
+              .map((item: any) => item.str)
+              .join(" ");
+            textParts.push(pageText);
+            if (textParts.join("").length >= maxChars) break;
+          }
+          extractedText = textParts.join("\n\n");
 
-          const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${lovableApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [
-                {
-                  role: "user",
-                  content: [
+          // If too little text, attempt OCR as fallback for small PDFs (<4MB)
+          const meaningful = extractedText.replace(/[^a-zA-Z0-9]/g, "");
+          if (meaningful.length < 100) {
+            const size = arrayBuffer.byteLength;
+            if (size <= 4_000_000) {
+              console.log("Low text from PDF.js; attempting Gemini OCR fallback...");
+              const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+              const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${lovableApiKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-pro",
+                  messages: [
                     {
-                      type: "text",
-                      text: "Extract all text from this PDF document. Return only the extracted text, no explanations."
-                    },
-                    {
-                      type: "image_url",
-                      image_url: {
-                        url: `data:application/pdf;base64,${base64Pdf}`
-                      }
+                      role: "user",
+                      content: [
+                        { type: "text", text: "This is a scanned PDF. Perform OCR and return only the extracted text." },
+                        { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64Pdf}` } }
+                      ]
                     }
-                  ]
+                  ],
+                }),
+              });
+              if (ocrResponse.ok) {
+                const ocrData = await ocrResponse.json();
+                const ocrText = ocrData.choices?.[0]?.message?.content || "";
+                if (ocrText.length > 100) {
+                  extractedText = ocrText;
+                  console.log("Gemini OCR fallback succeeded, text length:", extractedText.length);
                 }
-              ],
-            }),
-          });
-
-          if (ocrResponse.ok) {
-            const ocrData = await ocrResponse.json();
-            const ocrText = ocrData.choices?.[0]?.message?.content || "";
-            if (ocrText && ocrText.length > 100) {
-              extractedText = ocrText;
-              console.log("OCR extraction successful via Gemini, text length:", extractedText.length);
+              } else {
+                console.error("Gemini OCR fallback failed:", await ocrResponse.text());
+              }
             } else {
-              console.warn("OCR returned too little text; falling back to raw text read.");
+              console.warn("PDF too large for OCR fallback; keeping minimal extracted text.");
+            }
+          }
+        } catch (pdfError) {
+          console.error("PDF.js extraction error:", pdfError);
+          // As a last resort, try a constrained OCR for small files; otherwise store raw text
+          try {
+            const arrayBuffer = await fileData.arrayBuffer();
+            if (arrayBuffer.byteLength <= 4_000_000) {
+              const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+              const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${lovableApiKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-pro",
+                  messages: [
+                    {
+                      role: "user",
+                      content: [
+                        { type: "text", text: "Extract all readable text from this PDF. Return only the text." },
+                        { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64Pdf}` } }
+                      ]
+                    }
+                  ],
+                }),
+              });
+              if (ocrResponse.ok) {
+                const ocrData = await ocrResponse.json();
+                const ocrText = ocrData.choices?.[0]?.message?.content || "";
+                if (ocrText.length > 100) {
+                  extractedText = ocrText;
+                } else {
+                  extractedText = await fileData.text();
+                }
+              } else {
+                extractedText = await fileData.text();
+              }
+            } else {
               extractedText = await fileData.text();
             }
-          } else {
-            console.error("OCR failed:", await ocrResponse.text());
+          } catch (ocrErr) {
+            console.error("Final OCR attempt error:", ocrErr);
             extractedText = await fileData.text();
           }
-        } catch (pdfOrOcrError) {
-          console.error("PDF OCR error:", pdfOrOcrError);
-          // Final fallback to simple text extraction (may be noisy for binary PDFs)
-          extractedText = await fileData.text();
         }
     } else {
       // For text files (TXT, DOCX text content, etc.)
