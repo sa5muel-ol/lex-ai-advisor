@@ -85,7 +85,11 @@ export const DocumentList = () => {
         .createSignedUrl(filePath, 3600); // URL valid for 1 hour
 
       if (error) throw error;
-      setPdfUrl(data.signedUrl);
+      
+      // Construct full URL from relative path
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const fullUrl = `${supabaseUrl}/storage/v1${data.signedUrl}`;
+      setPdfUrl(fullUrl);
     } catch (error) {
       console.error("Error loading PDF:", error);
       toast({
