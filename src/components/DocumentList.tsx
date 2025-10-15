@@ -3,11 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2, Download, Eye, Trash2, X } from "lucide-react";
+import { FileText, Loader2, Download, Eye, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface Document {
   id: string;
@@ -26,6 +32,8 @@ export const DocumentList = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [numPages, setNumPages] = useState<number>(0);
+  const [pageNumber, setPageNumber] = useState<number>(1);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -100,16 +108,24 @@ export const DocumentList = () => {
 
   const handleViewDocument = (doc: Document) => {
     setSelectedDoc(doc);
-    setPdfUrl(null); // Reset PDF URL
+    setPdfUrl(null);
+    setPageNumber(1);
     if (doc.file_path) {
       loadPdfUrl(doc.file_path);
     }
   };
 
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+    setPageNumber(1);
+  };
+
   const handleDownload = () => {
-    if (pdfUrl) {
-      // Open in a new tab to avoid navigating the app away
-      window.open(pdfUrl, "_blank", "noopener,noreferrer");
+    if (pdfUrl && selectedDoc) {
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.download = selectedDoc.file_name;
+      link.click();
     }
   };
 
@@ -219,6 +235,8 @@ export const DocumentList = () => {
           }
           setPdfUrl(null);
           setSelectedDoc(null);
+          setPageNumber(1);
+          setNumPages(0);
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[85vh]">
@@ -265,30 +283,62 @@ export const DocumentList = () => {
             </TabsContent>
 
             <TabsContent value="original" className="mt-4">
-              <ScrollArea className="h-[50vh]">
-                {pdfUrl ? (
-                  <div className="space-y-4">
-                    <div className="flex justify-end">
-                      <Button onClick={handleDownload} variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-2" />
-                        Download PDF
+              {pdfUrl ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => setPageNumber(page => Math.max(1, page - 1))}
+                        disabled={pageNumber <= 1}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Page {pageNumber} of {numPages || '...'}
+                      </span>
+                      <Button
+                        onClick={() => setPageNumber(page => Math.min(numPages, page + 1))}
+                        disabled={pageNumber >= numPages}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <ChevronRight className="w-4 h-4" />
                       </Button>
                     </div>
-                    <div className="border rounded-lg overflow-hidden bg-muted/30">
-                      <iframe
-                        src={pdfUrl}
-                        className="w-full h-[500px]"
-                        title="PDF Viewer"
-                      />
+                    <Button onClick={handleDownload} variant="outline" size="sm">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-[500px]">
+                    <div className="flex justify-center bg-muted/30 p-4 rounded-lg">
+                      <Document
+                        file={pdfUrl}
+                        onLoadSuccess={onDocumentLoadSuccess}
+                        loading={
+                          <div className="flex items-center justify-center py-12">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                          </div>
+                        }
+                      >
+                        <Page
+                          pageNumber={pageNumber}
+                          renderTextLayer={true}
+                          renderAnnotationLayer={true}
+                          className="shadow-lg"
+                        />
+                      </Document>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                    <p className="text-sm text-muted-foreground">Loading PDF...</p>
-                  </div>
-                )}
-              </ScrollArea>
+                  </ScrollArea>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                  <p className="text-sm text-muted-foreground">Loading PDF...</p>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="full-text" className="mt-4">
