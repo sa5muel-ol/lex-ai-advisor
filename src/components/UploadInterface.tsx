@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,14 +7,23 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import getTextFromPDF from "react-pdftotext";
+import PDFTextExtractor from "@/services/PDFTextExtractor";
 
 export const UploadInterface = () => {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [extractionMethod, setExtractionMethod] = useState<'direct' | 'ocr' | null>(null);
   const { toast } = useToast();
+  const extractorRef = useRef<PDFTextExtractor | null>(null);
+
+  useEffect(() => {
+    extractorRef.current = new PDFTextExtractor();
+    return () => {
+      extractorRef.current?.terminateOCR();
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -26,10 +35,11 @@ export const UploadInterface = () => {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return;
+    if (!file || !extractorRef.current) return;
 
     setUploading(true);
     setProgress(10);
+    setExtractionMethod(null);
 
     try {
       const {
@@ -37,17 +47,28 @@ export const UploadInterface = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Extract text from PDF using react-pdftotext
+      // Extract text using smart dual-approach
       let extractedText = "";
+      let method: 'direct' | 'ocr' = 'direct';
+      
       if (file.type === "application/pdf") {
         try {
-          extractedText = await getTextFromPDF(file);
-          console.log("Extracted text length:", extractedText.length);
+          setProgress(15);
+          const result = await extractorRef.current.extractTextFromPDF(file);
+          extractedText = result.text;
+          method = result.method;
+          setExtractionMethod(method);
+          console.log(`Extracted text using ${method}, length:`, extractedText.length);
         } catch (error) {
           console.error("PDF text extraction error:", error);
+          toast({
+            title: "Extraction warning",
+            description: "Text extraction partially failed, but will continue with upload.",
+            variant: "default",
+          });
         }
       }
-      setProgress(20);
+      setProgress(30);
 
       // Upload file to storage
       const fileExt = file.name.split(".").pop();
@@ -89,13 +110,16 @@ export const UploadInterface = () => {
 
       toast({
         title: "Upload successful",
-        description: "Your document is being processed and will be searchable soon.",
+        description: extractionMethod 
+          ? `Document processed using ${extractionMethod === 'direct' ? 'direct text extraction' : 'OCR'}.`
+          : "Your document is being processed and will be searchable soon.",
       });
 
       // Reset form
       setFile(null);
       setTitle("");
       setProgress(0);
+      setExtractionMethod(null);
     } catch (error: any) {
       toast({
         title: "Upload failed",
@@ -169,10 +193,17 @@ export const UploadInterface = () => {
             {uploading && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Processing...</span>
+                  <span className="text-muted-foreground">
+                    {progress < 30 ? 'Extracting text...' : progress < 70 ? 'Uploading...' : 'Processing...'}
+                  </span>
                   <span className="font-medium">{progress}%</span>
                 </div>
                 <Progress value={progress} className="w-full" />
+                {extractionMethod && (
+                  <p className="text-xs text-muted-foreground">
+                    Using {extractionMethod === 'direct' ? 'direct text extraction' : 'OCR for scanned document'}
+                  </p>
+                )}
               </div>
             )}
 
