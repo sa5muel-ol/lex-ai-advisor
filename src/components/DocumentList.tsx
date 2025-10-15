@@ -239,7 +239,7 @@ export const DocumentList = () => {
           setNumPages(0);
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[85vh]">
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
@@ -282,10 +282,10 @@ export const DocumentList = () => {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="original" className="mt-4">
+            <TabsContent value="original" className="mt-4 flex-1 overflow-auto">
               {pdfUrl ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-4 pb-4">
+                  <div className="flex items-center justify-between sticky top-0 bg-background z-10 pb-2 border-b">
                     <div className="flex items-center gap-2">
                       <Button
                         onClick={() => setPageNumber(page => Math.max(1, page - 1))}
@@ -312,27 +312,25 @@ export const DocumentList = () => {
                       Download PDF
                     </Button>
                   </div>
-                  <ScrollArea className="h-[600px]">
-                    <div className="flex justify-center bg-muted/30 p-4 rounded-lg">
-                      <Document
-                        file={pdfUrl}
-                        onLoadSuccess={onDocumentLoadSuccess}
-                        loading={
-                          <div className="flex items-center justify-center py-12">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                          </div>
-                        }
-                      >
-                        <Page
-                          pageNumber={pageNumber}
-                          renderTextLayer={true}
-                          renderAnnotationLayer={true}
-                          className="shadow-lg"
-                          width={700}
-                        />
-                      </Document>
-                    </div>
-                  </ScrollArea>
+                  <div className="flex justify-center bg-muted/30 p-4 rounded-lg">
+                    <Document
+                      file={pdfUrl}
+                      onLoadSuccess={onDocumentLoadSuccess}
+                      loading={
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                      }
+                    >
+                      <Page
+                        pageNumber={pageNumber}
+                        renderTextLayer={true}
+                        renderAnnotationLayer={true}
+                        className="shadow-lg"
+                        width={Math.min(window.innerWidth * 0.7, 800)}
+                      />
+                    </Document>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
