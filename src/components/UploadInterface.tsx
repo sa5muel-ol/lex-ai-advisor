@@ -1,12 +1,13 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import getTextFromPDF from "react-pdftotext";
 
 export const UploadInterface = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -36,6 +37,18 @@ export const UploadInterface = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Extract text from PDF using react-pdftotext
+      let extractedText = "";
+      if (file.type === "application/pdf") {
+        try {
+          extractedText = await getTextFromPDF(file);
+          console.log("Extracted text length:", extractedText.length);
+        } catch (error) {
+          console.error("PDF text extraction error:", error);
+        }
+      }
+      setProgress(20);
+
       // Upload file to storage
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -58,6 +71,7 @@ export const UploadInterface = () => {
           file_path: fileName,
           file_type: file.type,
           status: "processing",
+          extracted_text: extractedText || null,
         })
         .select()
         .single();

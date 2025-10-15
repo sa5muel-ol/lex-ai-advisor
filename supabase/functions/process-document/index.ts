@@ -33,16 +33,21 @@ serve(async (req) => {
 
     console.log("Processing document:", document.title);
 
-    // Download file from storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from("legal-documents")
-      .download(document.file_path);
-
-    if (downloadError) throw downloadError;
-
-    console.log("Extracting text from file type:", document.file_type);
-
     let extractedText = "";
+
+    // Use pre-extracted text if available (from client-side extraction)
+    if (document.extracted_text && document.extracted_text.trim().length > 0) {
+      extractedText = document.extracted_text;
+      console.log("Using pre-extracted text from client, length:", extractedText.length);
+    } else {
+      // Fallback: Download file and extract on backend
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from("legal-documents")
+        .download(document.file_path);
+
+      if (downloadError) throw downloadError;
+
+      console.log("Extracting text from file type:", document.file_type);
 
     // Extract text based on file type
     if (document.file_type === "application/pdf" || document.file_name.endsWith(".pdf")) {
@@ -150,9 +155,10 @@ serve(async (req) => {
             extractedText = await fileData.text();
           }
         }
-    } else {
-      // For text files (TXT, DOCX text content, etc.)
-      extractedText = await fileData.text();
+      } else {
+        // For text files (TXT, DOCX text content, etc.)
+        extractedText = await fileData.text();
+      }
     }
 
     // Limit text length
