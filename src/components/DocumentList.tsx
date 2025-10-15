@@ -85,13 +85,14 @@ export const DocumentList = () => {
         .createSignedUrl(filePath, 3600); // URL valid for 1 hour
 
       if (error) throw error;
-      
-      console.log("Signed URL response:", data);
-      
-      // The response contains signedUrl as a relative path
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const fullUrl = `${supabaseUrl}/storage/v1${data.signedUrl}`;
-      
+
+      // Handle both possible shapes: { signedUrl } or { signedURL }
+      const path = (data as any).signedUrl ?? (data as any).signedURL ?? "";
+      const base = import.meta.env.VITE_SUPABASE_URL;
+      const fullUrl = path.startsWith("http")
+        ? path
+        : `${base}/storage/v1${path.startsWith("/") ? path : `/${path}`}`;
+
       console.log("Full PDF URL:", fullUrl);
       setPdfUrl(fullUrl);
     } catch (error) {
@@ -113,13 +114,9 @@ export const DocumentList = () => {
   };
 
   const handleDownload = () => {
-    if (pdfUrl && selectedDoc) {
-      const link = document.createElement("a");
-      link.href = pdfUrl;
-      link.download = selectedDoc.file_name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    if (pdfUrl) {
+      // Open in a new tab to avoid navigating the app away
+      window.open(pdfUrl, "_blank", "noopener,noreferrer");
     }
   };
 
