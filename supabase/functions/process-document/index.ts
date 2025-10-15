@@ -65,6 +65,59 @@ serve(async (req) => {
         }
         
         extractedText = textParts.join("\n\n");
+        
+        // Check if we got meaningful text (not just PDF metadata)
+        const meaningfulText = extractedText.replace(/[^a-zA-Z0-9]/g, '');
+        if (meaningfulText.length < 100) {
+          console.log("Insufficient text extracted - likely a scanned PDF. Detected as image-based.");
+          console.log("Using Google Cloud Vision API for OCR...");
+          
+          // Use Google Cloud Vision API for OCR via Lovable AI
+          try {
+            const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+            
+            const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${lovableApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      {
+                        type: "text",
+                        text: "Extract all text from this PDF document. Return only the extracted text, no explanations."
+                      },
+                      {
+                        type: "image_url",
+                        image_url: {
+                          url: `data:application/pdf;base64,${base64Pdf}`
+                        }
+                      }
+                    ]
+                  }
+                ],
+              }),
+            });
+
+            if (ocrResponse.ok) {
+              const ocrData = await ocrResponse.json();
+              const ocrText = ocrData.choices[0].message.content;
+              if (ocrText && ocrText.length > 100) {
+                extractedText = ocrText;
+                console.log("OCR extraction successful via Gemini, text length:", extractedText.length);
+              }
+            } else {
+              console.error("OCR failed:", await ocrResponse.text());
+            }
+          } catch (ocrError) {
+            console.error("OCR error:", ocrError);
+          }
+        }
       } catch (pdfError) {
         console.error("PDF parsing error:", pdfError);
         // Fallback to simple text extraction
