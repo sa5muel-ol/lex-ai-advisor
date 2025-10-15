@@ -86,11 +86,13 @@ export const DocumentList = () => {
 
       if (error) throw error;
       
-      // Construct full URL - signedUrl is relative path like "/object/sign/..."
+      console.log("Signed URL response:", data);
+      
+      // The response contains signedUrl as a relative path
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const fullUrl = `${supabaseUrl}/storage/v1${data.signedUrl}`;
       
-      console.log("PDF URL:", fullUrl); // Debug log
+      console.log("Full PDF URL:", fullUrl);
       setPdfUrl(fullUrl);
     } catch (error) {
       console.error("Error loading PDF:", error);
