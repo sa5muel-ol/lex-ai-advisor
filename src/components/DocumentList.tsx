@@ -312,7 +312,7 @@ export const DocumentList = () => {
                       Download PDF
                     </Button>
                   </div>
-                  <ScrollArea className="h-[500px]">
+                  <ScrollArea className="h-[600px]">
                     <div className="flex justify-center bg-muted/30 p-4 rounded-lg">
                       <Document
                         file={pdfUrl}
@@ -328,6 +328,7 @@ export const DocumentList = () => {
                           renderTextLayer={true}
                           renderAnnotationLayer={true}
                           className="shadow-lg"
+                          width={700}
                         />
                       </Document>
                     </div>
