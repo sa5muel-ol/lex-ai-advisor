@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2, Download, Eye, Trash2 } from "lucide-react";
+import { FileText, Loader2, Download, Eye, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Document {
   id: string;
@@ -166,6 +168,57 @@ export const DocumentList = () => {
           ))}
         </div>
       )}
+
+      <Dialog open={!!selectedDoc} onOpenChange={() => setSelectedDoc(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              {selectedDoc?.title}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedDoc?.file_name} • {selectedDoc && new Date(selectedDoc.created_at).toLocaleDateString()}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                {selectedDoc && getStatusBadge(selectedDoc.status)}
+                {selectedDoc && getPIIBadge(selectedDoc.pii_status)}
+              </div>
+
+              {selectedDoc?.summary && (
+                <div>
+                  <h4 className="font-semibold text-sm text-foreground mb-2">AI Summary</h4>
+                  <div className="bg-secondary/50 rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedDoc.summary}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-semibold text-foreground">Document ID:</span>
+                  <p className="text-muted-foreground font-mono text-xs mt-1">{selectedDoc?.id}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Upload Date:</span>
+                  <p className="text-muted-foreground mt-1">
+                    {selectedDoc && new Date(selectedDoc.created_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setSelectedDoc(null)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
