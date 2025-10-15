@@ -82,19 +82,12 @@ export const DocumentList = () => {
     try {
       const { data, error } = await supabase.storage
         .from("legal-documents")
-        .createSignedUrl(filePath, 3600); // URL valid for 1 hour
+        .download(filePath);
 
       if (error) throw error;
 
-      // Handle both possible shapes: { signedUrl } or { signedURL }
-      const path = (data as any).signedUrl ?? (data as any).signedURL ?? "";
-      const base = import.meta.env.VITE_SUPABASE_URL;
-      const fullUrl = path.startsWith("http")
-        ? path
-        : `${base}/storage/v1${path.startsWith("/") ? path : `/${path}`}`;
-
-      console.log("Full PDF URL:", fullUrl);
-      setPdfUrl(fullUrl);
+      const objectUrl = URL.createObjectURL(data);
+      setPdfUrl(objectUrl);
     } catch (error) {
       console.error("Error loading PDF:", error);
       toast({
@@ -219,9 +212,14 @@ export const DocumentList = () => {
         </div>
       )}
 
-      <Dialog open={!!selectedDoc} onOpenChange={() => {
-        setSelectedDoc(null);
-        setPdfUrl(null);
+      <Dialog open={!!selectedDoc} onOpenChange={(open) => {
+        if (!open) {
+          if (pdfUrl && pdfUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(pdfUrl);
+          }
+          setPdfUrl(null);
+          setSelectedDoc(null);
+        }
       }}>
         <DialogContent className="max-w-4xl max-h-[85vh]">
           <DialogHeader>
