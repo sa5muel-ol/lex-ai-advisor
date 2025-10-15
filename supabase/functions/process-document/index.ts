@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getDocument } from "https://esm.sh/pdfjs-dist@4.0.379/build/pdf.mjs";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,9 +40,43 @@ serve(async (req) => {
 
     if (downloadError) throw downloadError;
 
-    // Extract text (simplified - in production use Document AI)
-    const text = await fileData.text();
-    const extractedText = text.slice(0, 50000); // Limit for MVP
+    console.log("Extracting text from file type:", document.file_type);
+
+    let extractedText = "";
+
+    // Extract text based on file type
+    if (document.file_type === "application/pdf" || document.file_name.endsWith(".pdf")) {
+      // Parse PDF using pdf.js
+      try {
+        const arrayBuffer = await fileData.arrayBuffer();
+        const pdf = await getDocument({ data: arrayBuffer }).promise;
+        const textParts: string[] = [];
+        
+        // Extract text from each page
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(" ");
+          
+          textParts.push(pageText);
+        }
+        
+        extractedText = textParts.join("\n\n");
+      } catch (pdfError) {
+        console.error("PDF parsing error:", pdfError);
+        // Fallback to simple text extraction
+        extractedText = await fileData.text();
+      }
+    } else {
+      // For text files (TXT, DOCX text content, etc.)
+      extractedText = await fileData.text();
+    }
+
+    // Limit text length
+    extractedText = extractedText.slice(0, 50000);
 
     // Update document with extracted text
     await supabase
