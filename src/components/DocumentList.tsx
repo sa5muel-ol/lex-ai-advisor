@@ -13,6 +13,7 @@ interface Document {
   id: string;
   title: string;
   file_name: string;
+  file_path: string;
   status: string;
   pii_status: string;
   created_at: string;
@@ -24,6 +25,7 @@ export const DocumentList = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -76,22 +78,63 @@ export const DocumentList = () => {
     }
   };
 
+  const loadPdfUrl = async (filePath: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("legal-documents")
+        .createSignedUrl(filePath, 3600); // URL valid for 1 hour
+
+      if (error) throw error;
+      setPdfUrl(data.signedUrl);
+    } catch (error) {
+      console.error("Error loading PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewDocument = (doc: Document) => {
+    setSelectedDoc(doc);
+    setPdfUrl(null); // Reset PDF URL
+    if (doc.file_path) {
+      loadPdfUrl(doc.file_path);
+    }
+  };
+
+  const handleDownload = () => {
+    if (pdfUrl && selectedDoc) {
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.download = selectedDoc.file_name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from("legal_documents").delete().eq("id", id);
+      const { error } = await supabase
+        .from("legal_documents")
+        .delete()
+        .eq("id", id);
 
       if (error) throw error;
 
       toast({
-        title: "Document deleted",
-        description: "The document has been removed from your library.",
+        title: "Success",
+        description: "Document deleted successfully",
       });
 
       loadDocuments();
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error deleting document:", error);
       toast({
-        title: "Delete failed",
-        description: error.message,
+        title: "Error",
+        description: "Failed to delete document",
         variant: "destructive",
       });
     }
@@ -151,7 +194,7 @@ export const DocumentList = () => {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setSelectedDoc(doc)}
+                    onClick={() => handleViewDocument(doc)}
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     View Details
@@ -171,7 +214,10 @@ export const DocumentList = () => {
         </div>
       )}
 
-      <Dialog open={!!selectedDoc} onOpenChange={() => setSelectedDoc(null)}>
+      <Dialog open={!!selectedDoc} onOpenChange={() => {
+        setSelectedDoc(null);
+        setPdfUrl(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -184,9 +230,10 @@ export const DocumentList = () => {
           </DialogHeader>
           
           <Tabs defaultValue="overview" className="flex-1">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="full-text">Full Document</TabsTrigger>
+              <TabsTrigger value="original">Original PDF</TabsTrigger>
+              <TabsTrigger value="full-text">Extracted Text</TabsTrigger>
               <TabsTrigger value="metadata">Details</TabsTrigger>
             </TabsList>
 
@@ -211,6 +258,33 @@ export const DocumentList = () => {
                     </div>
                   )}
                 </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="original" className="mt-4">
+              <ScrollArea className="h-[50vh]">
+                {pdfUrl ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-end">
+                      <Button onClick={handleDownload} variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-2" />
+                        Download PDF
+                      </Button>
+                    </div>
+                    <div className="border rounded-lg overflow-hidden bg-muted/30">
+                      <iframe
+                        src={pdfUrl}
+                        className="w-full h-[500px]"
+                        title="PDF Viewer"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                    <p className="text-sm text-muted-foreground">Loading PDF...</p>
+                  </div>
+                )}
               </ScrollArea>
             </TabsContent>
 
