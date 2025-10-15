@@ -166,55 +166,11 @@ serve(async (req) => {
 
     console.log("Extracted text length:", extractedText.length);
 
-    // Generate summary using Lovable AI
-    const summaryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a concise legal summarizer. Given a court ruling excerpt, produce a 150-250 word neutral summary emphasizing facts, procedural posture, holding, and key legal reasoning. Always append a 'Sources' note with document reference.",
-          },
-          {
-            role: "user",
-            content: `Summarize this legal document:\n\n${extractedText.slice(0, 5000)}`,
-          },
-        ],
-      }),
-    });
-
-    if (!summaryResponse.ok) {
-      console.error("AI summary failed:", await summaryResponse.text());
-      throw new Error("Failed to generate summary");
-    }
-
-    const summaryData = await summaryResponse.json();
-    const summary = summaryData.choices[0].message.content;
-
-    console.log("Generated summary");
-
-    // Generate embeddings for chunks
-    const chunkSize = 1000;
-    const chunks: string[] = [];
-    for (let i = 0; i < extractedText.length; i += chunkSize) {
-      chunks.push(extractedText.slice(i, i + chunkSize));
-    }
-
-    console.log("Created", chunks.length, "chunks");
-
-    // Generate embeddings using Lovable AI (using text-embedding model simulation)
-    for (let i = 0; i < Math.min(chunks.length, 10); i++) {
-      const chunk = chunks[i];
-
-      // For MVP, we'll create simple embeddings
-      // In production, use proper embedding model
-      const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Generate summary using Lovable AI (only if we have meaningful text)
+    const meaningfulChars = extractedText.replace(/[^a-zA-Z0-9]/g, '').length;
+    let summary = '';
+    if (meaningfulChars >= 100) {
+      const summaryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${lovableApiKey}`,
@@ -225,32 +181,78 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: "Generate a semantic representation (keywords) for this text chunk.",
+              content:
+                "You are a concise legal summarizer. Given a court ruling excerpt, produce a 150-250 word neutral summary emphasizing facts, procedural posture, holding, and key legal reasoning. Always append a 'Sources' note with document reference.",
             },
-            { role: "user", content: chunk },
+            {
+              role: "user",
+              content: `Summarize this legal document:\n\n${extractedText.slice(0, 5000)}`,
+            },
           ],
         }),
       });
-
-      if (embeddingResponse.ok) {
-        const embeddingData = await embeddingResponse.json();
-        const keywords = embeddingData.choices[0].message.content;
-
-        // Create a simple embedding vector (768 dimensions)
-        // In production, use proper embedding API
-        const simpleEmbedding = Array(768).fill(0).map(() => Math.random());
-
-        await supabase.from("document_chunks").insert({
-          document_id: documentId,
-          chunk_text: chunk,
-          chunk_index: i,
-          embedding: simpleEmbedding,
-          metadata: { keywords },
-        });
+  
+      if (!summaryResponse.ok) {
+        console.error("AI summary failed:", await summaryResponse.text());
+        throw new Error("Failed to generate summary");
       }
+  
+      const summaryData = await summaryResponse.json();
+      summary = summaryData.choices[0].message.content;
+      console.log("Generated summary");
+    } else {
+      summary = 'No readable text could be extracted from this PDF (likely scanned/image-only). Please upload a text-based PDF for full summarization.';
+      console.warn('Skipping AI summary due to insufficient extracted text.');
     }
 
-    console.log("Created chunk embeddings");
+    // Generate embeddings for chunks only if meaningful text exists
+    if (meaningfulChars >= 100) {
+      const chunkSize = 1000;
+      const chunks: string[] = [];
+      for (let i = 0; i < extractedText.length; i += chunkSize) {
+        chunks.push(extractedText.slice(i, i + chunkSize));
+      }
+
+      console.log("Created", chunks.length, "chunks");
+
+      // Generate embeddings using Lovable AI (placeholder implementation)
+      for (let i = 0; i < Math.min(chunks.length, 10); i++) {
+        const chunk = chunks[i];
+        const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${lovableApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: "Generate a semantic representation (keywords) for this text chunk." },
+              { role: "user", content: chunk },
+            ],
+          }),
+        });
+
+        if (embeddingResponse.ok) {
+          const embeddingData = await embeddingResponse.json();
+          const keywords = embeddingData.choices[0].message.content;
+
+          const simpleEmbedding = Array(768).fill(0).map(() => Math.random());
+
+          await supabase.from("document_chunks").insert({
+            document_id: documentId,
+            chunk_text: chunk,
+            chunk_index: i,
+            embedding: simpleEmbedding,
+            metadata: { keywords },
+          });
+        }
+      }
+
+      console.log("Created chunk embeddings");
+    } else {
+      console.warn('Skipping embeddings due to insufficient extracted text.');
+    }
 
     // Update document status
     await supabase
