@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getDocument, GlobalWorkerOptions } from "https://esm.sh/pdfjs-dist@4.4.168/build/pdf.mjs";
+import { createWorker } from "https://esm.sh/tesseract.js@5.0.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -70,90 +71,46 @@ serve(async (req) => {
           }
           extractedText = textParts.join("\n\n");
 
-          // If too little text, attempt OCR as fallback
+          // If too little text, attempt OCR with Tesseract.js on the raw PDF
           const meaningful = extractedText.replace(/[^a-zA-Z0-9]/g, "");
           if (meaningful.length < 100) {
-            const size = arrayBuffer.byteLength;
-            // Increased limit to 10MB for OCR
-            if (size <= 10_000_000) {
-              console.log("Low text from PDF.js; attempting Gemini OCR fallback...");
-              const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-              const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${lovableApiKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-pro",
-                  messages: [
-                    {
-                      role: "user",
-                      content: [
-                        { type: "text", text: "This is a scanned PDF. Perform OCR and return only the extracted text." },
-                        { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64Pdf}` } }
-                      ]
-                    }
-                  ],
-                }),
-              });
-              if (ocrResponse.ok) {
-                const ocrData = await ocrResponse.json();
-                const ocrText = ocrData.choices?.[0]?.message?.content || "";
-                if (ocrText.length > 100) {
-                  extractedText = ocrText;
-                  console.log("Gemini OCR fallback succeeded, text length:", extractedText.length);
-                }
-              } else {
-                console.error("Gemini OCR fallback failed:", await ocrResponse.text());
+            console.log("Low text from PDF.js; attempting Tesseract OCR on PDF file...");
+            try {
+              const worker = await createWorker('eng');
+              const arrayBuffer = await fileData.arrayBuffer();
+              const buffer = new Uint8Array(arrayBuffer);
+              
+              // Run Tesseract directly on the PDF
+              const { data: { text } } = await worker.recognize(buffer);
+              await worker.terminate();
+              
+              if (text && text.length > 100) {
+                extractedText = text;
+                console.log("Tesseract OCR succeeded, text length:", extractedText.length);
               }
-            } else {
-              console.warn("PDF too large (>10MB) for OCR fallback; keeping minimal extracted text.");
+            } catch (ocrError) {
+              console.error("Tesseract OCR error:", ocrError);
             }
           }
         } catch (pdfError) {
           console.error("PDF.js extraction error:", pdfError);
-          // As a last resort, try OCR for files up to 10MB
+          // As a last resort, try Tesseract OCR on the raw PDF
           try {
+            console.log("PDF.js failed; attempting Tesseract OCR on PDF file...");
             const arrayBuffer = await fileData.arrayBuffer();
-            if (arrayBuffer.byteLength <= 10_000_000) {
-              const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-              const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${lovableApiKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-pro",
-                  messages: [
-                    {
-                      role: "user",
-                      content: [
-                        { type: "text", text: "Extract all readable text from this PDF. Return only the text." },
-                        { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64Pdf}` } }
-                      ]
-                    }
-                  ],
-                }),
-              });
-              if (ocrResponse.ok) {
-                const ocrData = await ocrResponse.json();
-                const ocrText = ocrData.choices?.[0]?.message?.content || "";
-                if (ocrText.length > 100) {
-                  extractedText = ocrText;
-                } else {
-                  extractedText = await fileData.text();
-                }
-              } else {
-                extractedText = await fileData.text();
-              }
+            const buffer = new Uint8Array(arrayBuffer);
+            
+            const worker = await createWorker('eng');
+            const { data: { text } } = await worker.recognize(buffer);
+            await worker.terminate();
+            
+            if (text && text.length > 100) {
+              extractedText = text;
             } else {
-              console.warn("PDF too large (>10MB) for OCR; using raw text fallback.");
               extractedText = await fileData.text();
             }
           } catch (ocrErr) {
-            console.error("Final OCR attempt error:", ocrErr);
+            console.error("Final Tesseract OCR attempt error:", ocrErr);
             extractedText = await fileData.text();
           }
         }
