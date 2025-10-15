@@ -217,10 +217,14 @@ export const DocumentList = () => {
             <TabsContent value="full-text" className="mt-4">
               <ScrollArea className="h-[50vh] pr-4">
                 {selectedDoc?.extracted_text ? (
-                  <div className="bg-muted/30 rounded-lg p-6">
-                    <p className="text-sm text-foreground whitespace-pre-wrap font-mono leading-relaxed">
-                      {selectedDoc.extracted_text}
-                    </p>
+                  <div className="bg-background rounded-lg p-8 border">
+                    <div className="prose prose-sm max-w-none text-foreground">
+                      {selectedDoc.extracted_text.split('\n').map((line, idx) => (
+                        <p key={idx} className="mb-3 text-sm leading-relaxed">
+                          {line || '\u00A0'}
+                        </p>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="bg-muted/50 rounded-lg p-8 text-center">
