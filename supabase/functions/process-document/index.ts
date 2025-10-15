@@ -49,7 +49,12 @@ serve(async (req) => {
       // Parse PDF using pdf.js
       try {
         const arrayBuffer = await fileData.arrayBuffer();
-        const pdf = await getDocument({ data: arrayBuffer }).promise;
+        const pdf = await getDocument({ 
+          data: arrayBuffer,
+          useWorkerFetch: false,
+          isEvalSupported: false,
+          useSystemFonts: true
+        }).promise;
         const textParts: string[] = [];
         
         // Extract text from each page
