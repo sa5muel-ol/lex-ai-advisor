@@ -7,6 +7,7 @@ import { FileText, Loader2, Download, Eye, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Document {
   id: string;
@@ -16,6 +17,7 @@ interface Document {
   pii_status: string;
   created_at: string;
   summary?: string;
+  extracted_text?: string;
 }
 
 export const DocumentList = () => {
@@ -170,7 +172,7 @@ export const DocumentList = () => {
       )}
 
       <Dialog open={!!selectedDoc} onOpenChange={() => setSelectedDoc(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
@@ -181,36 +183,98 @@ export const DocumentList = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-4">
-              <div className="flex gap-2">
-                {selectedDoc && getStatusBadge(selectedDoc.status)}
-                {selectedDoc && getPIIBadge(selectedDoc.pii_status)}
-              </div>
+          <Tabs defaultValue="overview" className="flex-1">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="full-text">Full Document</TabsTrigger>
+              <TabsTrigger value="metadata">Details</TabsTrigger>
+            </TabsList>
 
-              {selectedDoc?.summary && (
-                <div>
-                  <h4 className="font-semibold text-sm text-foreground mb-2">AI Summary</h4>
-                  <div className="bg-secondary/50 rounded-lg p-4">
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedDoc.summary}</p>
+            <TabsContent value="overview" className="mt-4">
+              <ScrollArea className="h-[50vh] pr-4">
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    {selectedDoc && getStatusBadge(selectedDoc.status)}
+                    {selectedDoc && getPIIBadge(selectedDoc.pii_status)}
+                  </div>
+
+                  {selectedDoc?.summary ? (
+                    <div>
+                      <h4 className="font-semibold text-sm text-foreground mb-2">AI Summary</h4>
+                      <div className="bg-secondary/50 rounded-lg p-4">
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedDoc.summary}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-muted/50 rounded-lg p-4 text-center">
+                      <p className="text-sm text-muted-foreground">No summary available yet.</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="full-text" className="mt-4">
+              <ScrollArea className="h-[50vh] pr-4">
+                {selectedDoc?.extracted_text ? (
+                  <div className="bg-muted/30 rounded-lg p-6">
+                    <p className="text-sm text-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                      {selectedDoc.extracted_text}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-muted/50 rounded-lg p-8 text-center">
+                    <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-sm text-muted-foreground">
+                      {selectedDoc?.status === 'processing' 
+                        ? 'Document is still being processed...' 
+                        : 'No text extracted from this document.'}
+                    </p>
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="metadata" className="mt-4">
+              <ScrollArea className="h-[50vh] pr-4">
+                <div className="grid gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="font-semibold text-foreground">Document ID:</span>
+                      <p className="text-muted-foreground font-mono text-xs mt-1 break-all">{selectedDoc?.id}</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-foreground">File Type:</span>
+                      <p className="text-muted-foreground mt-1">{selectedDoc?.file_name.split('.').pop()?.toUpperCase()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="font-semibold text-foreground">Upload Date:</span>
+                      <p className="text-muted-foreground mt-1">
+                        {selectedDoc && new Date(selectedDoc.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-foreground">Status:</span>
+                      <div className="mt-1">{selectedDoc && getStatusBadge(selectedDoc.status)}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="font-semibold text-foreground">PII Status:</span>
+                    <div className="mt-1">{selectedDoc && getPIIBadge(selectedDoc.pii_status)}</div>
+                  </div>
+
+                  <div>
+                    <span className="font-semibold text-foreground">File Name:</span>
+                    <p className="text-muted-foreground mt-1 break-all">{selectedDoc?.file_name}</p>
                   </div>
                 </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-semibold text-foreground">Document ID:</span>
-                  <p className="text-muted-foreground font-mono text-xs mt-1">{selectedDoc?.id}</p>
-                </div>
-                <div>
-                  <span className="font-semibold text-foreground">Upload Date:</span>
-                  <p className="text-muted-foreground mt-1">
-                    {selectedDoc && new Date(selectedDoc.created_at).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </ScrollArea>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={() => setSelectedDoc(null)}>
