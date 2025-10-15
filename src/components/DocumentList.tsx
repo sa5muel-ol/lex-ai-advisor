@@ -250,7 +250,7 @@ export const DocumentList = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue="overview" className="flex-1">
+          <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="original">Original PDF</TabsTrigger>
@@ -258,7 +258,7 @@ export const DocumentList = () => {
               <TabsTrigger value="metadata">Details</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="mt-4">
+            <TabsContent value="overview" className="mt-4 overflow-auto flex-1">
               <ScrollArea className="h-[50vh] pr-4">
                 <div className="space-y-4">
                   <div className="flex gap-2">
@@ -282,7 +282,7 @@ export const DocumentList = () => {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="original" className="mt-4 flex-1 overflow-auto">
+            <TabsContent value="original" className="mt-4 overflow-auto flex-1">
               {pdfUrl ? (
                 <div className="space-y-4 pb-4">
                   <div className="flex items-center justify-between sticky top-0 bg-background z-10 pb-2 border-b">
@@ -340,7 +340,7 @@ export const DocumentList = () => {
               )}
             </TabsContent>
 
-            <TabsContent value="full-text" className="mt-4">
+            <TabsContent value="full-text" className="mt-4 overflow-auto flex-1">
               <ScrollArea className="h-[50vh] pr-4">
                 {selectedDoc?.extracted_text ? (
                   <div className="bg-background rounded-lg p-8 border">
@@ -365,7 +365,7 @@ export const DocumentList = () => {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="metadata" className="mt-4">
+            <TabsContent value="metadata" className="mt-4 overflow-auto flex-1">
               <ScrollArea className="h-[50vh] pr-4">
                 <div className="grid gap-4 text-sm">
                   <div className="grid grid-cols-2 gap-4">
