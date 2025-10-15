@@ -70,11 +70,12 @@ serve(async (req) => {
           }
           extractedText = textParts.join("\n\n");
 
-          // If too little text, attempt OCR as fallback for small PDFs (<4MB)
+          // If too little text, attempt OCR as fallback
           const meaningful = extractedText.replace(/[^a-zA-Z0-9]/g, "");
           if (meaningful.length < 100) {
             const size = arrayBuffer.byteLength;
-            if (size <= 4_000_000) {
+            // Increased limit to 10MB for OCR
+            if (size <= 10_000_000) {
               console.log("Low text from PDF.js; attempting Gemini OCR fallback...");
               const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
               const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -107,15 +108,15 @@ serve(async (req) => {
                 console.error("Gemini OCR fallback failed:", await ocrResponse.text());
               }
             } else {
-              console.warn("PDF too large for OCR fallback; keeping minimal extracted text.");
+              console.warn("PDF too large (>10MB) for OCR fallback; keeping minimal extracted text.");
             }
           }
         } catch (pdfError) {
           console.error("PDF.js extraction error:", pdfError);
-          // As a last resort, try a constrained OCR for small files; otherwise store raw text
+          // As a last resort, try OCR for files up to 10MB
           try {
             const arrayBuffer = await fileData.arrayBuffer();
-            if (arrayBuffer.byteLength <= 4_000_000) {
+            if (arrayBuffer.byteLength <= 10_000_000) {
               const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
               const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
                 method: "POST",
@@ -148,6 +149,7 @@ serve(async (req) => {
                 extractedText = await fileData.text();
               }
             } else {
+              console.warn("PDF too large (>10MB) for OCR; using raw text fallback.");
               extractedText = await fileData.text();
             }
           } catch (ocrErr) {
