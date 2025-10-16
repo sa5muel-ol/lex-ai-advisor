@@ -2,18 +2,41 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Scale, Upload, Search, LogOut, FileText } from "lucide-react";
+import { Scale, Upload, Search, LogOut, FileText, Brain, Settings, Sun, Moon, Monitor } from "lucide-react";
 import { SearchInterface } from "@/components/SearchInterface";
+import { AIEnhancedSearchInterface } from "@/components/AIEnhancedSearchInterface";
 import { UploadInterface } from "@/components/UploadInterface";
 import { DocumentList } from "@/components/DocumentList";
+import { SettingsInterface } from "@/components/SettingsInterface";
+import { useTheme } from "@/providers/ThemeProvider";
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState<"search" | "upload" | "documents">("search");
+  const [activeTab, setActiveTab] = useState<"search" | "ai-search" | "upload" | "documents" | "settings">("ai-search");
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
+  };
+
+  const toggleTheme = () => {
+    if (theme === 'light') {
+      setTheme('dark');
+    } else if (theme === 'dark') {
+      setTheme('system');
+    } else {
+      setTheme('light');
+    }
+  };
+
+  const getThemeIcon = () => {
+    switch (theme) {
+      case 'light': return <Sun className="w-4 h-4" />;
+      case 'dark': return <Moon className="w-4 h-4" />;
+      case 'system': return <Monitor className="w-4 h-4" />;
+      default: return <Sun className="w-4 h-4" />;
+    }
   };
 
   return (
@@ -31,10 +54,15 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">AI-Powered Legal Research</p>
               </div>
             </div>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={toggleTheme} variant="outline" size="sm" title={`Current theme: ${theme}`}>
+                {getThemeIcon()}
+              </Button>
+              <Button onClick={handleSignOut} variant="outline" size="sm">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -44,13 +72,22 @@ const Dashboard = () => {
         <div className="container mx-auto px-4">
           <nav className="flex gap-1">
             <Button
+              variant={activeTab === "ai-search" ? "default" : "ghost"}
+              onClick={() => setActiveTab("ai-search")}
+              className="rounded-none border-b-2 border-transparent data-[active=true]:border-primary"
+              data-active={activeTab === "ai-search"}
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              AI Search
+            </Button>
+            <Button
               variant={activeTab === "search" ? "default" : "ghost"}
               onClick={() => setActiveTab("search")}
               className="rounded-none border-b-2 border-transparent data-[active=true]:border-primary"
               data-active={activeTab === "search"}
             >
               <Search className="w-4 h-4 mr-2" />
-              Search
+              Basic Search
             </Button>
             <Button
               variant={activeTab === "upload" ? "default" : "ghost"}
@@ -70,15 +107,26 @@ const Dashboard = () => {
               <FileText className="w-4 h-4 mr-2" />
               Documents
             </Button>
+            <Button
+              variant={activeTab === "settings" ? "default" : "ghost"}
+              onClick={() => setActiveTab("settings")}
+              className="rounded-none border-b-2 border-transparent data-[active=true]:border-primary"
+              data-active={activeTab === "settings"}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
           </nav>
         </div>
       </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {activeTab === "ai-search" && <AIEnhancedSearchInterface />}
         {activeTab === "search" && <SearchInterface />}
         {activeTab === "upload" && <UploadInterface />}
         {activeTab === "documents" && <DocumentList />}
+        {activeTab === "settings" && <SettingsInterface />}
       </main>
 
       {/* Footer */}
