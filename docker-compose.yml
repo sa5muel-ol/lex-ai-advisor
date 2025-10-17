@@ -2,19 +2,22 @@ version: "3.9"
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        VITE_GEMINI_API_KEY: ${VITE_GEMINI_API_KEY}
+        VITE_ELASTICSEARCH_URL: ${VITE_ELASTICSEARCH_URL:-http://elasticsearch:9200}
+        VITE_ELASTICSEARCH_USERNAME: ${VITE_ELASTICSEARCH_USERNAME}
+        VITE_ELASTICSEARCH_PASSWORD: ${VITE_ELASTICSEARCH_PASSWORD}
     image: lex-ai-advisor:latest
     container_name: lex-ai-app
     ports:
       - "8080:80"
     environment:
-      # Supply these via an .env file or your orchestrator
-      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
-      - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
-      - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
-      - VITE_ELASTICSEARCH_URL=${VITE_ELASTICSEARCH_URL:-http://elasticsearch:9200}
-      - VITE_ELASTICSEARCH_USERNAME=${VITE_ELASTICSEARCH_USERNAME}
-      - VITE_ELASTICSEARCH_PASSWORD=${VITE_ELASTICSEARCH_PASSWORD}
+      # runtime envs are not read by Vite client code, but can be used by Nginx or future server-side features
+      - NODE_ENV=production
     depends_on:
       - elasticsearch
     restart: unless-stopped
