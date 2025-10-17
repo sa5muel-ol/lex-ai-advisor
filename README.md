@@ -56,7 +56,7 @@ Before you begin, ensure you have:
 - **Docker** - For Elasticsearch and Kibana
 - **Git** - Version control
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Local)
 
 ### 1. Clone the Repository
 
@@ -106,6 +106,69 @@ npm run dev
 ```
 
 The application will be available at `http://localhost:8080`
+
+## 🐳 Docker Deploy (Linux VM / Server)
+
+This repository includes production-ready Docker assets. You can run the full stack (app + Elasticsearch + Kibana) with one command.
+
+### 1) Prepare environment
+
+Create an `.env` file in the project root on your server (or export env vars in your orchestrator):
+
+```bash
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+VITE_GEMINI_API_KEY=your_gemini_api_key
+VITE_ELASTICSEARCH_URL=http://elasticsearch:9200
+# Optional if you enable security later
+VITE_ELASTICSEARCH_USERNAME=
+VITE_ELASTICSEARCH_PASSWORD=
+```
+
+### 2) Build and run with Docker Compose
+
+```bash
+docker compose up -d --build
+```
+
+- App: http://YOUR_SERVER_IP:8080
+- Elasticsearch: http://YOUR_SERVER_IP:9200
+- Kibana: http://YOUR_SERVER_IP:5601
+
+To view logs:
+
+```bash
+docker compose logs -f app
+docker compose logs -f elasticsearch
+docker compose logs -f kibana
+```
+
+To stop:
+
+```bash
+docker compose down
+```
+
+### 3) First-time Elasticsearch index
+
+The app auto-initializes the `legal_documents` index at runtime. If you want sample data:
+
+```bash
+./add-sample-data.sh
+```
+
+### 4) Updating the app
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+### Notes
+
+- The SPA is served by Nginx in the `app` container (port 80 mapped to 8080 host).
+- Environment variables are baked at build-time for Vite apps; prefer building on the server with your `.env` present, or rebuild when envs change.
+- For SSL, place an SSL-terminating reverse proxy (e.g., Caddy/Traefik/Nginx) in front of port 8080.
 
 ## 🔧 Configuration
 
