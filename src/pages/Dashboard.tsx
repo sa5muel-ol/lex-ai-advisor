@@ -2,16 +2,19 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Scale, Upload, Search, LogOut, FileText, Brain, Settings, Sun, Moon, Monitor } from "lucide-react";
+import { Scale, Upload, Search, LogOut, FileText, Brain, Settings, Sun, Moon, Monitor, Database, RefreshCw, Trash2 } from "lucide-react";
 import { SearchInterface } from "@/components/SearchInterface";
 import { AIEnhancedSearchInterface } from "@/components/AIEnhancedSearchInterface";
 import { UploadInterface } from "@/components/UploadInterface";
 import { DocumentList } from "@/components/DocumentList";
 import { SettingsInterface } from "@/components/SettingsInterface";
+import { MassIngestionInterface } from "@/components/MassIngestionInterface";
+import { SyncInterface } from "@/components/SyncInterface";
+import GCPCleanupInterface from "@/components/GCPCleanupInterface";
 import { useTheme } from "@/providers/ThemeProvider";
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState<"search" | "ai-search" | "upload" | "documents" | "settings">("ai-search");
+  const [activeTab, setActiveTab] = useState<"search" | "ai-search" | "upload" | "documents" | "mass-ingestion" | "sync" | "cleanup" | "settings">("ai-search");
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
@@ -108,6 +111,33 @@ const Dashboard = () => {
               Documents
             </Button>
             <Button
+              variant={activeTab === "mass-ingestion" ? "default" : "ghost"}
+              onClick={() => setActiveTab("mass-ingestion")}
+              className="rounded-none border-b-2 border-transparent data-[active=true]:border-primary"
+              data-active={activeTab === "mass-ingestion"}
+            >
+              <Database className="w-4 h-4 mr-2" />
+              Mass Ingestion
+            </Button>
+            <Button
+              variant={activeTab === "sync" ? "default" : "ghost"}
+              onClick={() => setActiveTab("sync")}
+              className="rounded-none border-b-2 border-transparent data-[active=true]:border-primary"
+              data-active={activeTab === "sync"}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Sync
+            </Button>
+            <Button
+              variant={activeTab === "cleanup" ? "default" : "ghost"}
+              onClick={() => setActiveTab("cleanup")}
+              className="rounded-none border-b-2 border-transparent data-[active=true]:border-primary"
+              data-active={activeTab === "cleanup"}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Cleanup
+            </Button>
+            <Button
               variant={activeTab === "settings" ? "default" : "ghost"}
               onClick={() => setActiveTab("settings")}
               className="rounded-none border-b-2 border-transparent data-[active=true]:border-primary"
@@ -126,6 +156,9 @@ const Dashboard = () => {
         {activeTab === "search" && <SearchInterface />}
         {activeTab === "upload" && <UploadInterface />}
         {activeTab === "documents" && <DocumentList />}
+        {activeTab === "mass-ingestion" && <MassIngestionInterface />}
+        {activeTab === "sync" && <SyncInterface />}
+        {activeTab === "cleanup" && <GCPCleanupInterface />}
         {activeTab === "settings" && <SettingsInterface />}
       </main>
 

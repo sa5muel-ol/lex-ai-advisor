@@ -1,48 +1,25 @@
 version: '3.8'
+
 services:
+  # Elasticsearch service only
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: lex-ai-elasticsearch
+    container_name: lex-elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
-      - bootstrap.memory_lock=true
-      - http.cors.enabled=true
-      - http.cors.allow-origin="*"
-      - http.cors.allow-headers="X-Requested-With,X-Auth-Token,Content-Type,Content-Length,Authorization"
-      - http.cors.allow-credentials=true
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
       - "9300:9300"
     volumes:
-      - es_data:/usr/share/elasticsearch/data
+      - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
-      - lex-ai-network
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: lex-ai-kibana
-    ports:
-      - "5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - SERVER_NAME=kibana
-      - SERVER_HOST=0.0.0.0
-    depends_on:
-      - elasticsearch
-    networks:
-      - lex-ai-network
+      - lex-network
 
 volumes:
-  es_data:
-    driver: local
+  elasticsearch_data:
 
 networks:
-  lex-ai-network:
+  lex-network:
     driver: bridge
-

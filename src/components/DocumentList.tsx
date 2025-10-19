@@ -34,6 +34,7 @@ export const DocumentList = () => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
+  const [fileType, setFileType] = useState<string>('application/pdf');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,12 +43,21 @@ export const DocumentList = () => {
 
   const loadDocuments = async () => {
     try {
+      // First, let's check what user we're authenticated as
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current authenticated user:', user?.id);
+
+      // Load documents with RLS (normal behavior)
       const { data, error } = await supabase
         .from("legal_documents")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
+      console.log(`Found ${data?.length || 0} documents visible to current user`);
+      console.log('User IDs in visible documents:', [...new Set(data?.map(d => d.user_id) || [])]);
+      
       setDocuments(data || []);
     } catch (error: any) {
       toast({
@@ -86,34 +96,63 @@ export const DocumentList = () => {
     }
   };
 
-  const loadPdfUrl = async (filePath: string) => {
+  const loadPdfUrl = async (filePath: string, fileType?: string) => {
     try {
-      const { data, error } = await supabase.storage
-        .from("legal-documents")
-        .download(filePath);
-
-      if (error) throw error;
-
-      const objectUrl = URL.createObjectURL(data);
-      setPdfUrl(objectUrl);
+      console.log(`Loading GCS file: ${filePath}`);
+      
+      // All files are now stored in GCS - use proxy server to bypass CORS
+      {
+        // This is a GCS file - use proxy server to bypass CORS
+        const bucketName = import.meta.env.VITE_GCS_BUCKET_NAME || 'lex-legal-documents-bucket';
+        
+        // Ensure filePath has the documents/ prefix if it doesn't already
+        let gcsPath = filePath;
+        if (!gcsPath.startsWith('documents/')) {
+          gcsPath = `documents/${gcsPath}`;
+        }
+        
+        console.log(`Using proxy server for GCS file: ${gcsPath}`);
+        
+        // Use proxy server to download GCS file
+        const response = await fetch('http://localhost:3001/gcs-download', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filePath: gcsPath,
+            bucketName: bucketName
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`Proxy download failed: ${errorData.error || response.statusText}`);
+        }
+        
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            setPdfUrl(objectUrl);
+            setFileType(fileType || blob.type || 'application/pdf'); // Prioritize stored file_type
+      }
     } catch (error) {
       console.error("Error loading PDF:", error);
       toast({
         title: "Error",
-        description: "Failed to load PDF",
+        description: `Failed to load PDF: ${error.message}. Make sure the proxy server is running.`,
         variant: "destructive",
       });
     }
   };
 
-  const handleViewDocument = (doc: Document) => {
-    setSelectedDoc(doc);
-    setPdfUrl(null);
-    setPageNumber(1);
-    if (doc.file_path) {
-      loadPdfUrl(doc.file_path);
-    }
-  };
+      const handleViewDocument = (doc: Document) => {
+        setSelectedDoc(doc);
+        setPdfUrl(null);
+        setPageNumber(1);
+        if (doc.file_path) {
+          loadPdfUrl(doc.file_path, doc.file_type);
+        }
+      };
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -166,7 +205,12 @@ export const DocumentList = () => {
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-foreground">Your Documents</h2>
-        <Badge variant="outline">{documents.length} documents</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">{documents.length} documents</Badge>
+          <Badge variant="secondary" className="text-xs">
+            RLS Filtered
+          </Badge>
+        </div>
       </div>
 
       {documents.length === 0 ? (
@@ -253,7 +297,7 @@ export const DocumentList = () => {
           <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="original">Original PDF</TabsTrigger>
+              <TabsTrigger value="original">Original Document</TabsTrigger>
               <TabsTrigger value="full-text">Extracted Text</TabsTrigger>
               <TabsTrigger value="metadata">Details</TabsTrigger>
             </TabsList>
@@ -287,55 +331,72 @@ export const DocumentList = () => {
                 <div className="space-y-4 pb-4">
                   <div className="flex items-center justify-between sticky top-0 bg-background z-10 pb-2 border-b">
                     <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => setPageNumber(page => Math.max(1, page - 1))}
-                        disabled={pageNumber <= 1}
-                        size="sm"
-                        variant="outline"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <span className="text-sm text-muted-foreground">
-                        Page {pageNumber} of {numPages || '...'}
-                      </span>
-                      <Button
-                        onClick={() => setPageNumber(page => Math.min(numPages, page + 1))}
-                        disabled={pageNumber >= numPages}
-                        size="sm"
-                        variant="outline"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
+                      {fileType === 'application/pdf' && (
+                        <>
+                          <Button
+                            onClick={() => setPageNumber(page => Math.max(1, page - 1))}
+                            disabled={pageNumber <= 1}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <span className="text-sm text-muted-foreground">
+                            Page {pageNumber} of {numPages || '...'}
+                          </span>
+                          <Button
+                            onClick={() => setPageNumber(page => Math.min(numPages, page + 1))}
+                            disabled={pageNumber >= numPages}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                     <Button onClick={handleDownload} variant="outline" size="sm">
                       <Download className="w-4 h-4 mr-2" />
-                      Download PDF
+                      Download {fileType === 'text/plain' ? 'Text' : 'PDF'}
                     </Button>
                   </div>
                   <div className="flex justify-center bg-muted/30 p-4 rounded-lg">
-                    <Document
-                      file={pdfUrl}
-                      onLoadSuccess={onDocumentLoadSuccess}
-                      loading={
-                        <div className="flex items-center justify-center py-12">
-                          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    {fileType === 'application/pdf' ? (
+                      <Document
+                        file={pdfUrl}
+                        onLoadSuccess={onDocumentLoadSuccess}
+                        loading={
+                          <div className="flex items-center justify-center py-12">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                          </div>
+                        }
+                      >
+                        <Page
+                          pageNumber={pageNumber}
+                          renderTextLayer={true}
+                          renderAnnotationLayer={true}
+                          className="shadow-lg"
+                          width={Math.min(window.innerWidth * 0.7, 800)}
+                        />
+                      </Document>
+                    ) : (
+                      <div className="w-full max-w-4xl">
+                        <div className="bg-background rounded-lg p-6 border">
+                          <h3 className="text-lg font-semibold mb-4">Document Content</h3>
+                          <div className="prose prose-sm max-w-none text-foreground">
+                            <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                              {selectedDoc?.extracted_text || 'Loading content...'}
+                            </pre>
+                          </div>
                         </div>
-                      }
-                    >
-                      <Page
-                        pageNumber={pageNumber}
-                        renderTextLayer={true}
-                        renderAnnotationLayer={true}
-                        className="shadow-lg"
-                        width={Math.min(window.innerWidth * 0.7, 800)}
-                      />
-                    </Document>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                  <p className="text-sm text-muted-foreground">Loading PDF...</p>
+                  <p className="text-sm text-muted-foreground">Loading document...</p>
                 </div>
               )}
             </TabsContent>

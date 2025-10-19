@@ -29,110 +29,76 @@ export const SearchInterface = () => {
     setLoading(true);
 
     try {
-      // Try Supabase Edge Function first
-      try {
-        const { data, error } = await supabase.functions.invoke("search-cases", {
-          body: { query },
-        });
+      // Direct Supabase database search on legal_documents
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-        if (error) throw error;
+      console.log(`Searching for: "${query}"`);
 
-        setResults(data.results || []);
+      // Search in legal_documents using text search on extracted_text and title
+      const { data: documents, error: searchError } = await supabase
+        .from('legal_documents')
+        .select('*')
+        .or(`title.ilike.%${query}%,extracted_text.ilike.%${query}%,summary.ilike.%${query}%`)
+        .limit(10);
 
-        toast({
-          title: "Search complete",
-          description: `Found ${data.results?.length || 0} relevant cases`,
-        });
-        return;
-      } catch (supabaseError) {
-        console.log("Supabase Edge Function failed, trying direct database search:", supabaseError);
-        
-        // Fallback: Direct Supabase database search
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) throw new Error("Not authenticated");
-
-          // Search in document chunks using text search
-          const { data: chunks, error: searchError } = await supabase
-            .from('document_chunks')
-            .select(`
-              *,
-              legal_documents (
-                id,
-                title,
-                summary
-              )
-            `)
-            .textSearch('chunk_text', query)
-            .limit(10);
-
-          if (searchError) throw searchError;
-
-          // Transform results to match our interface
-          const transformedResults: SearchResult[] = (chunks || []).map((chunk: any) => ({
-            document_id: chunk.legal_documents.id,
-            title: chunk.legal_documents.title,
-            similarity_score: 0.75 + Math.random() * 0.2, // Simulated score
-            matching_chunk: chunk.chunk_text.slice(0, 300),
-            summary: chunk.legal_documents.summary,
-          }));
-
-          setResults(transformedResults);
-
-          toast({
-            title: "Search complete",
-            description: `Found ${transformedResults.length} relevant cases from your documents`,
-          });
-          return;
-
-        } catch (dbError) {
-          console.log("Direct database search failed, falling back to Elasticsearch:", dbError);
-          
-          // Fallback to Elasticsearch
-          const elasticsearchService = new BrowserElasticsearchService();
-          
-          try {
-            const searchResults = await elasticsearchService.hybridSearch(query, {});
-            
-            // Transform Elasticsearch results to match our interface
-            const transformedResults: SearchResult[] = searchResults.results.map((result: any) => ({
-              document_id: result.id || result._id || Math.random().toString(),
-              title: result.title || result.filename || "Legal Document",
-              similarity_score: result.score ? Math.min(result.score / 10, 1) : 0.7 + Math.random() * 0.2,
-              matching_chunk: result.content || result.text || result.excerpt || "Content excerpt not available",
-              summary: result.summary || result.description,
-            }));
-
-            setResults(transformedResults);
-
-            toast({
-              title: "Search complete",
-              description: `Found ${transformedResults.length} relevant cases using Elasticsearch`,
-            });
-          } catch (elasticsearchError) {
-            console.error("Elasticsearch search failed:", elasticsearchError);
-            
-            // Final fallback - show sample results
-            const sampleResults: SearchResult[] = [
-              {
-                document_id: "sample-1",
-                title: "Sample Legal Case",
-                similarity_score: 0.85,
-                matching_chunk: `This is a sample result for your query "${query}". Upload some documents to see real search results.`,
-                summary: "This is a sample legal case summary."
-              }
-            ];
-
-            setResults(sampleResults);
-
-            toast({
-              title: "Search completed with sample results",
-              description: "No documents found. Upload some documents to enable real search results.",
-              variant: "default",
-            });
-          }
-        }
+      if (searchError) {
+        console.error("Search error:", searchError);
+        throw searchError;
       }
+
+      console.log(`Found ${documents?.length || 0} documents`);
+
+      // Transform results to match our interface
+      const transformedResults: SearchResult[] = (documents || []).map((doc: any) => {
+        // Find the best matching excerpt from extracted_text
+        const text = doc.extracted_text || '';
+        const queryLower = query.toLowerCase();
+        const textLower = text.toLowerCase();
+        
+        let matchingChunk = '';
+        let similarityScore = 0.5; // Base score
+        
+        // Find the first occurrence of the query
+        const queryIndex = textLower.indexOf(queryLower);
+        if (queryIndex !== -1) {
+          // Extract 300 characters around the match
+          const start = Math.max(0, queryIndex - 150);
+          const end = Math.min(text.length, queryIndex + query.length + 150);
+          matchingChunk = text.substring(start, end);
+          similarityScore = 0.8; // Higher score for direct match
+        } else {
+          // Fallback: take first 300 characters
+          matchingChunk = text.substring(0, 300);
+          similarityScore = 0.6; // Lower score for no direct match
+        }
+
+        // Boost score if title matches
+        if (doc.title && doc.title.toLowerCase().includes(queryLower)) {
+          similarityScore = Math.min(similarityScore + 0.2, 1.0);
+        }
+
+        // Boost score if summary matches
+        if (doc.summary && doc.summary.toLowerCase().includes(queryLower)) {
+          similarityScore = Math.min(similarityScore + 0.1, 1.0);
+        }
+
+        return {
+          document_id: doc.id,
+          title: doc.title || doc.file_name || "Legal Document",
+          similarity_score: similarityScore,
+          matching_chunk: matchingChunk || "No content available",
+          summary: doc.summary || "No summary available",
+        };
+      });
+
+      setResults(transformedResults);
+
+      toast({
+        title: "Search complete",
+        description: `Found ${transformedResults.length} relevant documents`,
+      });
+
     } catch (error: any) {
       console.error("Search error:", error);
       toast({
@@ -157,16 +123,16 @@ export const SearchInterface = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="w-5 h-5" />
-            Semantic Case Search
+            Basic Search (Supabase)
           </CardTitle>
           <CardDescription>
-            Search through legal documents using natural language queries
+            Fast text search through your GCP-stored legal documents using Supabase database
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearch} className="flex gap-2">
             <Input
-              placeholder="Enter your legal query or case description..."
+              placeholder="Search your legal documents..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1"

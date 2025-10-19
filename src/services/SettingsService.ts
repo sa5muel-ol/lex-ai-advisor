@@ -5,6 +5,7 @@ export interface Settings {
   elasticsearchPassword: string;
   supabaseUrl: string;
   supabaseAnonKey: string;
+  courtListenerApiKey: string;
   theme: 'light' | 'dark' | 'system';
   searchPreferences: {
     defaultSearchType: 'ai' | 'basic' | 'hybrid';

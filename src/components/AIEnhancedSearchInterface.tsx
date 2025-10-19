@@ -220,10 +220,10 @@ export const AIEnhancedSearchInterface = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-purple-600" />
-            AI-Enhanced Legal Search
+            AI Search (AI + Elasticsearch)
           </CardTitle>
           <CardDescription>
-            Powered by Elasticsearch + Gemini 2.5 Flash for intelligent legal research
+            Intelligent search through your GCP-stored documents using AI analysis + Elasticsearch
           </CardDescription>
           <div className="flex items-center gap-4 mt-2">
             <div className="flex items-center gap-2">
@@ -244,7 +244,7 @@ export const AIEnhancedSearchInterface = () => {
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <Input
-                placeholder="Describe your legal question or case..."
+                placeholder="Ask AI about your legal documents..."
                 value={query}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 className="pr-10"

@@ -5,9 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Upload, FileText, Loader2, Cloud, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import PDFTextExtractor from "@/services/PDFTextExtractor";
+import { GoogleCloudStorageService } from "@/services/GoogleCloudStorageService";
+
+type StorageProvider = 'supabase' | 'gcs';
 
 export const UploadInterface = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -15,15 +19,23 @@ export const UploadInterface = () => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [extractionMethod, setExtractionMethod] = useState<'direct' | 'ocr' | null>(null);
+  const [storageProvider, setStorageProvider] = useState<StorageProvider>('gcs'); // Default to GCS
+  const [gcsService] = useState(() => new GoogleCloudStorageService());
+  const [gcsConfigStatus, setGcsConfigStatus] = useState<{bucket: boolean; project: boolean; apiKey: boolean}>({bucket: false, project: false, apiKey: false});
   const { toast } = useToast();
   const extractorRef = useRef<PDFTextExtractor | null>(null);
 
   useEffect(() => {
     extractorRef.current = new PDFTextExtractor();
+    
+    // Check GCS configuration status
+    const configStatus = gcsService.getConfigStatus();
+    setGcsConfigStatus(configStatus);
+    
     return () => {
       extractorRef.current?.terminateOCR();
     };
-  }, []);
+  }, [gcsService]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -31,6 +43,29 @@ export const UploadInterface = () => {
       setFile(selectedFile);
       setTitle(selectedFile.name.replace(/\.[^/.]+$/, ""));
     }
+  };
+
+  const uploadToSupabase = async (file: File, extractedText: string, user: any) => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from("legal-documents")
+      .upload(fileName, file);
+
+    if (uploadError) throw uploadError;
+
+    return fileName;
+  };
+
+  const uploadToGCS = async (file: File, extractedText: string, user: any) => {
+    const result = await gcsService.uploadFile(file, `${user.id}/${Date.now()}-${file.name}`);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'GCS upload failed');
+    }
+
+    return result.filename!;
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -70,16 +105,21 @@ export const UploadInterface = () => {
       }
       setProgress(30);
 
-      // Upload file to storage
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      setProgress(30);
+      // Upload file to selected storage provider
+      let fileName: string;
+      let storageUrl: string;
 
-      const { error: uploadError } = await supabase.storage
-        .from("legal-documents")
-        .upload(fileName, file);
+      if (storageProvider === 'gcs') {
+        fileName = await uploadToGCS(file, extractedText, user);
+        storageUrl = `https://storage.googleapis.com/${gcsService['bucketName']}/${fileName}`;
+      } else {
+        fileName = await uploadToSupabase(file, extractedText, user);
+        const { data: { publicUrl } } = supabase.storage
+          .from("legal-documents")
+          .getPublicUrl(fileName);
+        storageUrl = publicUrl;
+      }
 
-      if (uploadError) throw uploadError;
       setProgress(50);
 
       // Create database record
@@ -91,7 +131,7 @@ export const UploadInterface = () => {
           file_name: file.name,
           file_path: fileName,
           file_type: file.type,
-          status: "processing",
+          status: "processing" as any, // Cast to enum type
           extracted_text: extractedText || null,
         })
         .select()
@@ -100,19 +140,14 @@ export const UploadInterface = () => {
       if (dbError) throw dbError;
       setProgress(70);
 
-      // Process document via edge function
-      const { error: processError } = await supabase.functions.invoke("process-document", {
-        body: { documentId: document.id },
-      });
-
-      if (processError) throw processError;
+      // Skip edge function processing for now (text already extracted client-side)
+      // TODO: Deploy process-document edge function to Supabase
+      console.log("Skipping edge function processing - text already extracted client-side");
       setProgress(100);
 
       toast({
         title: "Upload successful",
-        description: extractionMethod 
-          ? `Document processed using ${extractionMethod === 'direct' ? 'direct text extraction' : 'OCR'}.`
-          : "Your document is being processed and will be searchable soon.",
+        description: `Document uploaded to ${storageProvider === 'gcs' ? 'Google Cloud Storage' : 'Supabase Storage'} and processed using ${extractionMethod === 'direct' ? 'direct text extraction' : 'OCR'}.`,
       });
 
       // Reset form
@@ -155,6 +190,68 @@ export const UploadInterface = () => {
                 required
               />
             </div>
+
+                 <div className="space-y-2">
+                   <Label htmlFor="storage">Storage Provider</Label>
+                   <Select value={storageProvider} onValueChange={(value: StorageProvider) => setStorageProvider(value)}>
+                     <SelectTrigger>
+                       <SelectValue />
+                     </SelectTrigger>
+                     <SelectContent>
+                       <SelectItem value="gcs">
+                         <div className="flex items-center gap-2">
+                           <Cloud className="w-4 h-4" />
+                           Google Cloud Storage
+                         </div>
+                       </SelectItem>
+                       <SelectItem value="supabase">
+                         <div className="flex items-center gap-2">
+                           <Database className="w-4 h-4" />
+                           Supabase Storage
+                         </div>
+                       </SelectItem>
+                     </SelectContent>
+                   </Select>
+                   <p className="text-xs text-muted-foreground">
+                     {storageProvider === 'gcs' 
+                       ? 'Documents stored in Google Cloud Storage for enhanced scalability and integration with Google AI services.'
+                       : 'Documents stored in Supabase Storage for quick access and processing.'
+                     }
+                   </p>
+                   
+                   {storageProvider === 'gcs' && (
+                     <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                       <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                         ☁️ Google Cloud Storage Configuration
+                       </h4>
+                       <div className="space-y-1 text-xs">
+                         <div className="flex items-center gap-2">
+                           <div className={`w-2 h-2 rounded-full ${gcsConfigStatus.bucket ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                           <span className={gcsConfigStatus.bucket ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
+                             Bucket: {gcsConfigStatus.bucket ? 'lex-legal-documents-bucket ✓' : 'Not configured'}
+                           </span>
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <div className={`w-2 h-2 rounded-full ${gcsConfigStatus.project ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                           <span className={gcsConfigStatus.project ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'}>
+                             Project ID: {gcsConfigStatus.project ? 'Configured ✓' : 'Optional'}
+                           </span>
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <div className={`w-2 h-2 rounded-full ${gcsConfigStatus.apiKey ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                           <span className={gcsConfigStatus.apiKey ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'}>
+                             API Key: {gcsConfigStatus.apiKey ? 'Configured ✓' : 'Optional (fallback mode)'}
+                           </span>
+                         </div>
+                       </div>
+                       {!gcsConfigStatus.bucket && (
+                         <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                           ⚠️ Please set VITE_GCS_BUCKET_NAME in your environment variables
+                         </p>
+                       )}
+                     </div>
+                   )}
+                 </div>
 
             <div className="space-y-2">
               <Label htmlFor="file">Document File</Label>
@@ -232,6 +329,18 @@ export const UploadInterface = () => {
               stored securely and accessible only to you.
             </p>
           </div>
+
+          {storageProvider === 'gcs' && (
+            <div className="mt-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                ☁️ Google Cloud Integration
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                Using Google Cloud Storage enables seamless integration with Google AI services, 
+                better scalability, and advanced document processing capabilities for your hackathon submission.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

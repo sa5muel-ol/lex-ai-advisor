@@ -68,28 +68,37 @@ export class BrowserElasticsearchService {
   }
 
   private async makeRequest(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    try {
+      const url = `${this.baseUrl}${endpoint}`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
 
-    // Add basic auth if credentials are provided
-    if (this.username && this.password) {
-      const credentials = btoa(`${this.username}:${this.password}`);
-      headers['Authorization'] = `Basic ${credentials}`;
+      // Add basic auth if credentials are provided
+      if (this.username && this.password) {
+        const credentials = btoa(`${this.username}:${this.password}`);
+        headers['Authorization'] = `Basic ${credentials}`;
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Elasticsearch request failed: ${response.status} ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      // Handle connection refused and other network errors gracefully
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.warn('Elasticsearch connection failed - service may not be running');
+        throw new Error('Elasticsearch service unavailable');
+      }
+      throw error;
     }
-
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Elasticsearch request failed: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
   }
 
   async initializeIndex(): Promise<void> {
