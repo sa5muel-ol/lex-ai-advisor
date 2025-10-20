@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Loader2, FileText, Scale, Brain, Lightbulb, Target, AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AIEnhancedSearchService, AIEnhancedSearchResult } from "@/services/AIEnhancedSearchService";
-import { SearchFilters } from "@/services/ElasticsearchService";
-import { DocumentSyncService } from "@/services/DocumentSyncService";
+import { SearchFilters } from "@/services/BrowserElasticsearchService";
+import { GCPMetadataSyncService } from "@/services/GCPMetadataSyncService";
 
 export const AIEnhancedSearchInterface = () => {
   const [query, setQuery] = useState("");
@@ -18,7 +18,7 @@ export const AIEnhancedSearchInterface = () => {
   const [filters, setFilters] = useState<SearchFilters>({});
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [aiSearchService] = useState(() => new AIEnhancedSearchService());
-  const [documentSyncService] = useState(() => new DocumentSyncService());
+  const [gcpSyncService] = useState(() => new GCPMetadataSyncService());
   const [syncing, setSyncing] = useState(false);
   const [serviceStatus, setServiceStatus] = useState<{elasticsearch: boolean; gemini: boolean}>({elasticsearch: false, gemini: false});
 
@@ -31,16 +31,28 @@ export const AIEnhancedSearchInterface = () => {
         // Initialize Elasticsearch
         await aiSearchService.initialize();
         
-        // Check if sync is needed and sync documents from Supabase
-        const syncNeeded = await documentSyncService.isSyncNeeded();
-        if (syncNeeded) {
-          console.log('Syncing documents from Supabase to Elasticsearch...');
-          const syncResult = await documentSyncService.syncAllDocuments();
-          
-          toast({
-            title: "Document Sync Complete",
-            description: `Synced ${syncResult.success} documents from Supabase to Elasticsearch.`,
-          });
+        // Check if sync is needed and sync documents from GCP
+        const syncStatus = await gcpSyncService.getSyncStatus();
+        if (syncStatus.syncIssues > 0) {
+          console.log(`Sync needed: ${syncStatus.syncIssues} files need attention`);
+          setSyncing(true);
+          try {
+            const syncResult = await gcpSyncService.syncGCPToSupabase();
+            
+            toast({
+              title: "Document Sync Complete",
+              description: `Synced ${syncResult.success} documents from GCP to Supabase.`,
+            });
+          } catch (error) {
+            console.error('Sync failed:', error);
+            toast({
+              title: "Sync Failed",
+              description: "Failed to sync documents from GCP to Supabase.",
+              variant: "destructive",
+            });
+          } finally {
+            setSyncing(false);
+          }
         } else {
           console.log('Documents are already synced');
         }
@@ -66,16 +78,16 @@ export const AIEnhancedSearchInterface = () => {
   const handleManualSync = async () => {
     setSyncing(true);
     try {
-      const syncResult = await documentSyncService.syncAllDocuments();
+      const syncResult = await gcpSyncService.syncGCPToSupabase();
       toast({
         title: "Document Sync Complete",
-        description: `Successfully synced ${syncResult.success} documents. ${syncResult.failed > 0 ? `${syncResult.failed} failed.` : ''}`,
+        description: `Successfully synced ${syncResult.success} documents from GCP to Supabase. ${syncResult.failed > 0 ? `${syncResult.failed} failed.` : ''}`,
       });
     } catch (error) {
       console.error('Manual sync failed:', error);
       toast({
         title: "Sync Failed",
-        description: "Failed to sync documents. Please try again.",
+        description: "Failed to sync documents from GCP to Supabase. Please try again.",
         variant: "destructive",
       });
     } finally {
