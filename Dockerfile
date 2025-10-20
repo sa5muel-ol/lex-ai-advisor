@@ -25,8 +25,10 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install ONLY production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install production dependencies AND vite for preview
+RUN npm ci --only=production && \
+    npm install vite && \
+    npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
@@ -45,5 +47,5 @@ USER nextjs
 # Expose port
 EXPOSE 8080
 
-# Start the application
-CMD ["npm", "run", "preview"]
+# Start the application with explicit host binding
+CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "8080"]
