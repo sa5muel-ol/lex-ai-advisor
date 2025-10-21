@@ -25,8 +25,13 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
-    env_file:
-      - .env
+      - VITE_GOOGLE_CLOUD_API_KEY=${VITE_GOOGLE_CLOUD_API_KEY}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+      - VITE_GCS_BUCKET_NAME=${VITE_GCS_BUCKET_NAME}
+      - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+      - VITE_COURT_LISTENER_API_KEY=${VITE_COURT_LISTENER_API_KEY}
+      - VITE_ELASTICSEARCH_URL=${VITE_ELASTICSEARCH_URL}
     depends_on:
       - elasticsearch
     networks:
@@ -41,8 +46,13 @@ services:
       - "8080:4173"
     environment:
       - NODE_ENV=production
-    env_file:
-      - .env
+      - VITE_GOOGLE_CLOUD_API_KEY=${VITE_GOOGLE_CLOUD_API_KEY}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
+      - VITE_GCS_BUCKET_NAME=${VITE_GCS_BUCKET_NAME}
+      - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+      - VITE_COURT_LISTENER_API_KEY=${VITE_COURT_LISTENER_API_KEY}
+      - VITE_ELASTICSEARCH_URL=${VITE_ELASTICSEARCH_URL}
     depends_on:
       - elasticsearch
       - proxy-server
