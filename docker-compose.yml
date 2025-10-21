@@ -58,7 +58,7 @@ services:
       - proxy-server
     networks:
       - lex-network
-    command: ["npm", "run", "preview"]
+    command: ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
 
 volumes:
   elasticsearch_data:

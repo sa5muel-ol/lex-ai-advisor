@@ -44,12 +44,7 @@ export default defineConfig(({ mode }) => ({
   preview: {
     host: "0.0.0.0",
     port: 4173,
-    allowedHosts: [
-      "localhost",
-      "127.0.0.1",
-      "casecompass.samuelninsiima.com",
-      "44.252.181.51"
-    ],
+    allowedHosts: "all",
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
