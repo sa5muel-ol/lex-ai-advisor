@@ -45,7 +45,7 @@ RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 # Expose port
-EXPOSE 8080
+EXPOSE 4173
 
-# Start the application with explicit host binding
-CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "8080"]
+# Start the application with default Vite preview
+CMD ["npm", "run", "preview"]
