@@ -48,4 +48,4 @@ USER nextjs
 EXPOSE 4173 3001
 
 # Start the application with default Vite preview
-CMD ["npm", "run", "preview"]
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
