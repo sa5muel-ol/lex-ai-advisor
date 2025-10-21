@@ -36,7 +36,7 @@ services:
     build: .
     container_name: lex-ai-advisor
     ports:
-      - "8080:8080"
+      - "8080:4173"
     environment:
       - NODE_ENV=production
     depends_on:
