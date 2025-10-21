@@ -44,8 +44,8 @@ RUN addgroup -g 1001 -S nodejs && \
 RUN chown -R nextjs:nodejs /app
 USER nextjs
 
-# Expose port
-EXPOSE 4173
+# Expose ports
+EXPOSE 4173 3001
 
 # Start the application with default Vite preview
 CMD ["npm", "run", "preview"]

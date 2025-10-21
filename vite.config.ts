@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => ({
   // <-- add this preview block
   preview: {
     host: "0.0.0.0",
-    port: 8080,
+    port: 4173,
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

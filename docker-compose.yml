@@ -25,11 +25,13 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
+    env_file:
+      - .env
     depends_on:
       - elasticsearch
     networks:
       - lex-network
-    command: ["node", "server-proxy.js"]
+    command: ["npm", "run", "proxy"]
 
   # Main application
   app:
@@ -39,6 +41,8 @@ services:
       - "8080:4173"
     environment:
       - NODE_ENV=production
+    env_file:
+      - .env
     depends_on:
       - elasticsearch
       - proxy-server
