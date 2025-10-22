@@ -34,7 +34,7 @@ export class GoogleCloudStorageService {
    */
   async uploadFile(file: File, path?: string): Promise<UploadResult> {
     try {
-      const filename = path || `documents/${Date.now()}-${file.name}`;
+      const filename = path || `${Date.now()}-${file.name}`;
       
       // For real GCS upload, we need to use the REST API
       // This requires proper authentication and CORS setup

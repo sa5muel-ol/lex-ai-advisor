@@ -311,8 +311,9 @@ export class CourtListenerService {
     const { GoogleCloudStorageService } = await import('./GoogleCloudStorageService');
     const gcsService = new GoogleCloudStorageService();
     
-    // Upload to GCS - this is our single source of truth
-    const uploadResult = await gcsService.uploadFile(file);
+    // Upload to GCS at high level (not in documents/ folder) - this is our single source of truth
+    const fileName = `${Date.now()}-${file.name}`;
+    const uploadResult = await gcsService.uploadFile(file, fileName);
     
     if (!uploadResult.success) {
       console.error('GCS upload failed:', uploadResult.error);
