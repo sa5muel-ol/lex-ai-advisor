@@ -320,7 +320,8 @@ export class CourtListenerService {
       throw new Error(`Failed to upload to GCS: ${uploadResult.error}`);
     }
     
-    const fileName = uploadResult.filename || file.name;
+    // Use the filename from upload result
+    const finalFileName = uploadResult.filename || fileName;
     
     // Store metadata in Supabase (no file storage, just metadata)
     const supabase = this.supabaseClient || (await import('../integrations/supabase/client')).supabase;
@@ -335,7 +336,7 @@ export class CourtListenerService {
       userId = '00000000-0000-0000-0000-000000000000';
     }
     
-    console.log(`Storing document metadata: file_name=${metadata.file_name}, file_path=${fileName}, file_type=${metadata.file_type}`);
+    console.log(`Storing document metadata: file_name=${metadata.file_name}, file_path=${finalFileName}, file_type=${metadata.file_type}`);
     
     // Generate AI summary using Gemini service
     let summary = '';
@@ -353,7 +354,7 @@ export class CourtListenerService {
       user_id: userId,
       title: metadata.title,
       file_name: metadata.file_name,
-      file_path: fileName, // Use just the filename, not the full upload result
+      file_path: finalFileName, // Use the final filename from upload result
       file_type: metadata.file_type,
       status: 'indexed', // Mark as indexed since we've processed it
       extracted_text: metadata.extracted_text,
