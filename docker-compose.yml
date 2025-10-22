@@ -32,6 +32,7 @@ services:
       - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
       - VITE_COURT_LISTENER_API_KEY=${VITE_COURT_LISTENER_API_KEY}
       - VITE_ELASTICSEARCH_URL=${VITE_ELASTICSEARCH_URL}
+      - VITE_PROXY_SERVER_URL=${VITE_PROXY_SERVER_URL}
     depends_on:
       - elasticsearch
     networks:
@@ -53,6 +54,7 @@ services:
       - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
       - VITE_COURT_LISTENER_API_KEY=${VITE_COURT_LISTENER_API_KEY}
       - VITE_ELASTICSEARCH_URL=${VITE_ELASTICSEARCH_URL}
+      - VITE_PROXY_SERVER_URL=${VITE_PROXY_SERVER_URL}
     depends_on:
       - elasticsearch
       - proxy-server
