@@ -173,7 +173,7 @@ docker-compose ps
 #### Production Deployment
 ```bash
 # Use production Docker Compose
-docker-compose -f docker-compose.lightsail.yml up -d --build
+docker-compose -f docker-compose.prod.yml up -d --build
 
 # With SSL termination
 # Configure Nginx with SSL certificates
@@ -181,9 +181,9 @@ docker-compose -f docker-compose.lightsail.yml up -d --build
 ```
 
 ### Cloud Platform Support
-- **AWS**: EC2, Lightsail, ECS
-- **Google Cloud**: Compute Engine, Cloud Run
-- **Azure**: Virtual Machines, Container Instances
+- **Google Cloud**: Compute Engine, Cloud Run, GKE
+- **AWS**: EC2, ECS, EKS
+- **Azure**: Virtual Machines, Container Instances, AKS
 - **DigitalOcean**: Droplets
 - **Linode**: Cloud instances
 
