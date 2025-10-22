@@ -65,7 +65,7 @@ export const SearchInterface = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 px-4 sm:px-6 lg:px-8">
+    <div className="space-y-4 px-0 sm:px-4 sm:max-w-4xl sm:mx-auto">
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">

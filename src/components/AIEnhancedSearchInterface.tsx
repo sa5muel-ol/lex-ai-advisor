@@ -276,7 +276,7 @@ export const AIEnhancedSearchInterface = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="space-y-6 px-0 sm:px-4 sm:max-w-6xl sm:mx-auto">
       {/* AI-Enhanced Search Bar */}
       <Card>
         <CardHeader className="pb-4">

@@ -200,7 +200,7 @@ export const DocumentList = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4 px-4 sm:px-6 lg:px-8">
+    <div className="space-y-4 px-0 sm:px-4 sm:max-w-5xl sm:mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-xl sm:text-2xl font-bold text-foreground">Your Documents</h2>
         <div className="flex items-center gap-2">
