@@ -311,7 +311,7 @@ export const AIEnhancedSearchInterface = () => {
                   placeholder="Ask AI about your legal documents..."
                   value={query}
                   onChange={(e) => handleQueryChange(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 text-sm sm:text-base"
                 />
                 {suggestions.length > 0 && (
                   <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 mt-1">
