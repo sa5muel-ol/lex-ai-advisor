@@ -105,11 +105,8 @@ export const DocumentList = () => {
         // This is a GCS file - use proxy server to bypass CORS
         const bucketName = import.meta.env.VITE_GCS_BUCKET_NAME || 'lex-legal-documents-bucket';
         
-        // Ensure filePath has the documents/ prefix if it doesn't already
+        // Use the filePath as-is (it already contains the correct path)
         let gcsPath = filePath;
-        if (!gcsPath.startsWith('documents/')) {
-          gcsPath = `documents/${gcsPath}`;
-        }
         
         console.log(`Using proxy server for GCS file: ${gcsPath}`);
         
