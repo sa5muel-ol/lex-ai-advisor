@@ -200,11 +200,11 @@ export const DocumentList = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-foreground">Your Documents</h2>
+    <div className="max-w-5xl mx-auto space-y-4 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">Your Documents</h2>
         <div className="flex items-center gap-2">
-          <Badge variant="outline">{documents.length} documents</Badge>
+          <Badge variant="outline" className="text-xs sm:text-sm">{documents.length} documents</Badge>
           <Badge variant="secondary" className="text-xs">
             RLS Filtered
           </Badge>
@@ -219,46 +219,49 @@ export const DocumentList = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {documents.map((doc) => (
             <Card key={doc.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-primary" />
-                      {doc.title}
+              <CardHeader className="pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="flex items-start gap-2 text-base sm:text-lg">
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0 mt-0.5" />
+                      <span className="break-words">{doc.title}</span>
                     </CardTitle>
-                    <CardDescription className="mt-1">
-                      {doc.file_name} • {new Date(doc.created_at).toLocaleDateString()}
+                    <CardDescription className="mt-1 text-xs sm:text-sm">
+                      <span className="break-all">{doc.file_name}</span> • {new Date(doc.created_at).toLocaleDateString()}
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-1 sm:gap-2">
                     {getStatusBadge(doc.status)}
                     {getPIIBadge(doc.pii_status)}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4 pt-0">
                 {doc.summary && (
-                  <div className="bg-secondary/50 rounded-lg p-4">
-                    <h4 className="font-semibold text-sm text-foreground mb-2">AI Summary</h4>
-                    <p className="text-sm text-muted-foreground">{doc.summary}</p>
+                  <div className="bg-secondary/50 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-xs sm:text-sm text-foreground mb-2">AI Summary</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{doc.summary}</p>
                   </div>
                 )}
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleViewDocument(doc)}
+                    className="flex-1 sm:flex-none"
                   >
                     <Eye className="w-4 h-4 mr-2" />
-                    View Details
+                    <span className="hidden sm:inline">View Details</span>
+                    <span className="sm:hidden">View</span>
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleDelete(doc.id)}
+                    className="flex-1 sm:flex-none"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete

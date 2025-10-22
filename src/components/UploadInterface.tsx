@@ -167,27 +167,28 @@ export const UploadInterface = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Upload className="w-5 h-5" />
             Upload Legal Document
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Upload PDF or DOCX files for AI-powered analysis and indexing
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleUpload} className="space-y-6">
+          <form onSubmit={handleUpload} className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="title">Document Title</Label>
+              <Label htmlFor="title" className="text-sm font-medium">Document Title</Label>
               <Input
                 id="title"
                 placeholder="Enter document title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                className="text-sm sm:text-base"
               />
             </div>
 

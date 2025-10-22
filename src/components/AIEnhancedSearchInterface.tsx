@@ -279,15 +279,16 @@ export const AIEnhancedSearchInterface = () => {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* AI-Enhanced Search Bar */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Brain className="w-5 h-5 text-purple-600" />
-            AI Search (AI + Elasticsearch)
+            <span className="hidden sm:inline">AI Search (AI + Elasticsearch)</span>
+            <span className="sm:hidden">AI Search</span>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Intelligent search through your GCP-stored documents using AI analysis + Elasticsearch
           </CardDescription>
-          <div className="flex items-center gap-4 mt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${serviceStatus.elasticsearch ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className="text-xs text-muted-foreground">
@@ -303,85 +304,102 @@ export const AIEnhancedSearchInterface = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Input
-                placeholder="Ask AI about your legal documents..."
-                value={query}
-                onChange={(e) => handleQueryChange(e.target.value)}
-                className="pr-10"
-              />
-              {suggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 mt-1">
-                  {suggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setQuery(suggestion);
-                        setSuggestions([]);
-                      }}
-                    >
-                      {suggestion}
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  placeholder="Ask AI about your legal documents..."
+                  value={query}
+                  onChange={(e) => handleQueryChange(e.target.value)}
+                  className="pr-10"
+                />
+                {suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-10 mt-1">
+                    {suggestions.map((suggestion, index) => (
+                      <div
+                        key={index}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        onClick={() => {
+                          setQuery(suggestion);
+                          setSuggestions([]);
+                        }}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button onClick={handleIntelligentSearch} disabled={loading} className="w-full sm:w-auto">
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1 sm:mr-2 animate-spin" />
+                    <span className="hidden sm:inline">AI Analyzing...</span>
+                    <span className="sm:hidden">Analyzing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Brain className="w-4 h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">AI Search</span>
+                    <span className="sm:hidden">Search</span>
+                  </>
+                )}
+              </Button>
             </div>
-            <Button onClick={handleIntelligentSearch} disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  AI Analyzing...
-                </>
-              ) : (
-                <>
-                  <Brain className="w-4 h-4 mr-2" />
-                  AI Search
-                </>
-              )}
-            </Button>
-            <Button 
-              onClick={handleManualSync}
-              disabled={syncing}
-              variant="outline"
-            >
-              {syncing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sync GCP → Supabase
-                </>
-              )}
-            </Button>
-            <Button 
-              onClick={handleManualElasticsearchSync}
-              disabled={syncing}
-              variant="outline"
-            >
-              {syncing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Indexing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sync Supabase → Elasticsearch
-                </>
-              )}
-            </Button>
-            <Button 
-              onClick={testGeminiConnection}
-              variant="outline"
-              size="sm"
-            >
-              Test Gemini
-            </Button>
+            
+            {/* Sync buttons - responsive layout */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                onClick={handleManualSync}
+                disabled={syncing}
+                variant="outline"
+                className="flex-1 sm:flex-none"
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <span className="hidden sm:inline">Syncing...</span>
+                    <span className="sm:hidden">Sync GCP</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Sync GCP → Supabase</span>
+                    <span className="sm:hidden">Sync GCP</span>
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={handleManualElasticsearchSync}
+                disabled={syncing}
+                variant="outline"
+                className="flex-1 sm:flex-none"
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <span className="hidden sm:inline">Indexing...</span>
+                    <span className="sm:hidden">Sync ES</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Sync Supabase → Elasticsearch</span>
+                    <span className="sm:hidden">Sync ES</span>
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={testGeminiConnection}
+                variant="outline"
+                size="sm"
+                className="flex-1 sm:flex-none"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Test Gemini</span>
+                <span className="sm:hidden">Test</span>
+              </Button>
+            </div>
           </div>
           
           <Textarea

@@ -65,26 +65,26 @@ export const SearchInterface = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4 px-4 sm:px-6 lg:px-8">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Search className="w-5 h-5" />
             Elastic Search
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             Fast text search through your legal documents using Elasticsearch with advanced indexing and highlighting
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSearch} className="flex gap-2">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
             <Input
               placeholder="Search your legal documents..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="flex-1"
+              className="flex-1 min-w-0"
             />
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -102,47 +102,49 @@ export const SearchInterface = () => {
       </Card>
 
       {results.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Search Results</h3>
+        <div className="space-y-3">
+          <h3 className="text-base sm:text-lg font-semibold px-1">Search Results</h3>
           {results.map((result) => (
             <Card key={result.document_id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                      {result.title}
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base sm:text-lg flex items-start gap-2">
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <span className="break-words">{result.title}</span>
                     </CardTitle>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Scale className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        Score: {result.similarity_score.toFixed(2)}
-                      </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-2">
+                      <div className="flex items-center gap-1">
+                        <Scale className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                        <span className="text-xs sm:text-sm text-gray-600">
+                          Score: {result.similarity_score.toFixed(2)}
+                        </span>
+                      </div>
                       {getConfidenceBadge(result.similarity_score)}
                     </div>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <div className="space-y-3">
                   {result.summary && (
                     <div>
-                      <h4 className="font-medium text-sm text-gray-700 mb-1">Summary:</h4>
-                      <p className="text-sm text-gray-600">{result.summary}</p>
+                      <h4 className="font-medium text-xs sm:text-sm text-gray-700 mb-1">Summary:</h4>
+                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{result.summary}</p>
                     </div>
                   )}
                   <div>
-                    <h4 className="font-medium text-sm text-gray-700 mb-1">Matching Content:</h4>
-                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                    <h4 className="font-medium text-xs sm:text-sm text-gray-700 mb-1">Matching Content:</h4>
+                    <p className="text-xs sm:text-sm text-gray-600 bg-gray-50 p-2 sm:p-3 rounded-md leading-relaxed">
                       {result.matching_chunk}
                     </p>
                   </div>
                   {result.legal_entities && result.legal_entities.length > 0 && (
                     <div>
-                      <h4 className="font-medium text-sm text-gray-700 mb-1">Legal Entities:</h4>
+                      <h4 className="font-medium text-xs sm:text-sm text-gray-700 mb-1">Legal Entities:</h4>
                       <div className="flex flex-wrap gap-1">
                         {result.legal_entities.map((entity: any, index: number) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
+                          <Badge key={index} variant="secondary" className="text-xs px-2 py-1">
                             {entity.name || entity}
                           </Badge>
                         ))}
@@ -151,10 +153,10 @@ export const SearchInterface = () => {
                   )}
                   {result.case_citations && result.case_citations.length > 0 && (
                     <div>
-                      <h4 className="font-medium text-sm text-gray-700 mb-1">Case Citations:</h4>
+                      <h4 className="font-medium text-xs sm:text-sm text-gray-700 mb-1">Case Citations:</h4>
                       <div className="flex flex-wrap gap-1">
                         {result.case_citations.map((citation: any, index: number) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                          <Badge key={index} variant="outline" className="text-xs px-2 py-1">
                             {citation.case_name || citation}
                           </Badge>
                         ))}
@@ -163,10 +165,10 @@ export const SearchInterface = () => {
                   )}
                   {result.legal_concepts && result.legal_concepts.length > 0 && (
                     <div>
-                      <h4 className="font-medium text-sm text-gray-700 mb-1">Legal Concepts:</h4>
+                      <h4 className="font-medium text-xs sm:text-sm text-gray-700 mb-1">Legal Concepts:</h4>
                       <div className="flex flex-wrap gap-1">
                         {result.legal_concepts.map((concept: string, index: number) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                          <Badge key={index} variant="outline" className="text-xs px-2 py-1">
                             {concept}
                           </Badge>
                         ))}
