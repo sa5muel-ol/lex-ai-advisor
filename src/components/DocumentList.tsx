@@ -114,7 +114,7 @@ export const DocumentList = () => {
         console.log(`Using proxy server for GCS file: ${gcsPath}`);
         
         // Use proxy server to download GCS file
-        const response = await fetch('http://localhost:3001/gcs-download', {
+        const response = await fetch('/gcs-download', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

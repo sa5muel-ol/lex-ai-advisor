@@ -135,7 +135,7 @@ export class CourtListenerService {
   }
 
   private async downloadViaBackendProxy(url: string): Promise<ArrayBuffer> {
-    const response = await fetch('http://localhost:3001/download', {
+    const response = await fetch('/download', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
