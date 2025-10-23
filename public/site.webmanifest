@@ -4,7 +4,7 @@
   "description": "AI-powered legal research platform",
   "icons": [
     {
-      "src": "/jurist-favicon.svg",
+      "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     },
