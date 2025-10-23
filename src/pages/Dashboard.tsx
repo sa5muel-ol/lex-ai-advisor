@@ -126,7 +126,7 @@ const Dashboard = () => {
                     <Logo size="md" />
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    nomosanalytics helps you ingest, organize, search and summarize legal documents using
+                    juristinsight helps you ingest, organize, search and summarize legal documents using
                     Elasticsearch and AI.
                   </p>
                   {navigationItems.map((item) => {

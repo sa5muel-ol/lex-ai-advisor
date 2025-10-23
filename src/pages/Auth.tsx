@@ -48,7 +48,7 @@ const Auth = () => {
     } else {
       toast({
         title: "Welcome back!",
-        description: "Successfully signed in to nomosanalytics",
+        description: "Successfully signed in to juristinsight",
       });
       navigate("/");
     }

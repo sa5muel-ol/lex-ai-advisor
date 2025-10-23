@@ -9,10 +9,10 @@ const PORT = 3001;
 // Enable CORS for all routes
 app.use(cors({
   origin: [
-    'http://localhost:8080', 
+    'http://localhost:8080',
     'http://127.0.0.1:8080',
-    'https://casecompass.samuelninsiima.com',
-    'http://casecompass.samuelninsiima.com'
+    'https://juristinsight.samuelninsiima.com',
+    'http://juristinsight.samuelninsiima.com'
   ],
   credentials: true
 }));
