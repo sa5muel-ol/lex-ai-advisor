@@ -135,7 +135,8 @@ export class UnifiedDocumentProcessor {
    */
   private async extractText(file: File): Promise<string> {
     if (file.type === 'application/pdf') {
-      return await this.pdfExtractor.extractText(file);
+      const result = await this.pdfExtractor.extractTextFromPDF(file);
+      return result.text;
     } else if (file.type === 'text/plain') {
       return await file.text();
     } else {
