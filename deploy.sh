@@ -5,6 +5,36 @@
 
 set -e  # Exit immediately on error
 
+# Auto-detect environment
+if [ -f "package.json" ] && grep -q '"dev"' package.json; then
+    # Check if we're running in Docker
+    if [ -f "/.dockerenv" ] || [ -n "$DOCKER_CONTAINER" ]; then
+        ENVIRONMENT="production"
+        echo "🐳 Detected Docker production environment"
+    else
+        ENVIRONMENT="development"
+        echo "💻 Detected local development environment"
+    fi
+else
+    ENVIRONMENT="production"
+    echo "🚀 Detected production environment"
+fi
+
+# Set URLs based on environment
+if [ "$ENVIRONMENT" = "development" ]; then
+    PROXY_URL="http://localhost:3001"
+    ELASTICSEARCH_URL="http://localhost:9200"
+else
+    # Production - use current domain or fallback
+    CURRENT_DOMAIN=${CURRENT_DOMAIN:-"juristinsight.com"}
+    PROXY_URL="https://${CURRENT_DOMAIN}"
+    ELASTICSEARCH_URL="https://${CURRENT_DOMAIN}/es"
+fi
+
+echo "🔧 Environment: $ENVIRONMENT"
+echo "🌐 Proxy URL: $PROXY_URL"
+echo "🔍 Elasticsearch URL: $ELASTICSEARCH_URL"
+
 echo "🚀 Deploying Lex AI Advisor (service: app)..."
 
 # -----------------------------------------------------
@@ -30,6 +60,9 @@ fi
 if [ ! -f .env ]; then
     echo "📝 Creating .env file template..."
     cat > .env << EOF
+# Environment Configuration
+NODE_ENV=${ENVIRONMENT}
+
 # Supabase Configuration
 VITE_SUPABASE_URL=your-supabase-url
 VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
@@ -44,13 +77,14 @@ VITE_GEMINI_API_KEY=your-gemini-api-key
 # Court Listener API
 VITE_COURT_LISTENER_API_KEY=your-court-listener-api-key
 
-# Proxy Server Configuration
-VITE_PROXY_SERVER_URL=https://juristinsight.com
-
-# Elasticsearch
-VITE_ELASTICSEARCH_URL=http://localhost:9200
+# Auto-detected URLs
+VITE_PROXY_SERVER_URL=${PROXY_URL}
+VITE_ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
 EOF
     echo "⚠️  Please update .env file with your actual API keys before running the application."
+    echo "✅ URLs auto-configured for ${ENVIRONMENT} environment:"
+    echo "   🌐 Proxy: ${PROXY_URL}"
+    echo "   🔍 Elasticsearch: ${ELASTICSEARCH_URL}"
 fi
 
 # -----------------------------------------------------

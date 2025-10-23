@@ -1,0 +1,21 @@
+{
+  "name": "juristinsight",
+  "short_name": "juristinsight",
+  "description": "AI-powered legal research platform",
+  "icons": [
+    {
+      "src": "/jurist-favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "theme_color": "#3b82f6",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/"
+}

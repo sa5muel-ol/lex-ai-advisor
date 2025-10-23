@@ -3,6 +3,8 @@
  * Handles mass ingestion of legal documents from federal courts
  */
 
+import { getServiceUrl } from "@/lib/environment";
+
 interface CourtListenerDocument {
   cluster_id: number;
   absolute_url: string;
@@ -135,7 +137,7 @@ export class CourtListenerService {
   }
 
   private async downloadViaBackendProxy(url: string): Promise<ArrayBuffer> {
-    const proxyUrl = import.meta.env.VITE_PROXY_SERVER_URL || 'http://localhost:3001';
+    const proxyUrl = getServiceUrl('proxy');
     const response = await fetch(`${proxyUrl}/download`, {
       method: 'POST',
       headers: {

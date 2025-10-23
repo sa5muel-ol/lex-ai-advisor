@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getServiceUrl } from "@/lib/environment";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -111,7 +112,8 @@ export const DocumentList = () => {
         console.log(`Using proxy server for GCS file: ${gcsPath}`);
         
         // Use proxy server to download GCS file
-        const proxyUrl = import.meta.env.VITE_PROXY_SERVER_URL || 'http://localhost:3001';
+        const proxyUrl = getServiceUrl('proxy');
+        console.log(`Proxy URL: ${proxyUrl}`);
         const response = await fetch(`${proxyUrl}/gcs-download`, {
           method: 'POST',
           headers: {
