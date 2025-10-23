@@ -12,6 +12,7 @@ import { BrowserElasticsearchService } from "./BrowserElasticsearchService";
 export interface DocumentProcessingResult {
   success: boolean;
   documentId?: string;
+  title?: string;
   error?: string;
 }
 
@@ -44,19 +45,24 @@ export class UnifiedDocumentProcessor {
    */
   async processDocument(
     file: File, 
+    title: string,
     userId: string, 
+    onProgress?: (progress: number) => void,
     metadata: Partial<DocumentMetadata> = {}
   ): Promise<DocumentProcessingResult> {
     try {
       console.log(`Processing document: ${file.name}`);
+      onProgress?.(10);
 
       // Step 1: Extract text from PDF
       const extractedText = await this.extractText(file);
       console.log(`Extracted ${extractedText.length} characters`);
+      onProgress?.(30);
 
       // Step 2: Generate AI summary and analysis
       const aiAnalysis = await this.generateAIAnalysis(extractedText);
       console.log(`Generated AI analysis`);
+      onProgress?.(50);
 
       // Step 3: Upload physical file to GCS (single source of truth)
       const fileName = `${Date.now()}-${file.name}`;
@@ -66,10 +72,11 @@ export class UnifiedDocumentProcessor {
         throw new Error(`GCS upload failed: ${uploadResult.error}`);
       }
       console.log(`Uploaded to GCS: ${uploadResult.filename}`);
+      onProgress?.(70);
 
       // Step 4: Store metadata in Supabase (no physical file duplication)
       const documentMetadata = {
-        title: metadata.title || file.name.replace(/\.[^/.]+$/, ""),
+        title: title || metadata.title || file.name.replace(/\.[^/.]+$/, ""),
         file_name: file.name,
         file_path: uploadResult.filename!, // GCS path
         file_type: file.type,
@@ -100,10 +107,12 @@ export class UnifiedDocumentProcessor {
         throw new Error(`Database error: ${dbError.message}`);
       }
       console.log(`Stored metadata in Supabase: ${document.id}`);
+      onProgress?.(80);
 
       // Step 5: Index in Elasticsearch for search
       await this.indexInElasticsearch(document);
       console.log(`Indexed in Elasticsearch`);
+      onProgress?.(90);
 
       // Step 6: Update status to indexed
       await supabase
@@ -112,10 +121,12 @@ export class UnifiedDocumentProcessor {
         .eq('id', document.id);
 
       console.log(`Document processing complete: ${document.id}`);
+      onProgress?.(100);
       
       return {
         success: true,
-        documentId: document.id
+        documentId: document.id,
+        title: documentMetadata.title
       };
 
     } catch (error: any) {
