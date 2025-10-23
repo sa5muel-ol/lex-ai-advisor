@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getServiceUrl } from "@/lib/environment";
 import { Document, Page, pdfjs } from 'react-pdf';
+import { shouldBypassAuth, getDevUserId } from "@/lib/devMode";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -44,23 +45,48 @@ export const DocumentList = () => {
 
   const loadDocuments = async () => {
     try {
-      // First, let's check what user we're authenticated as
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('Current authenticated user:', user?.id);
+      let userId: string | null = null;
+      
+      if (shouldBypassAuth()) {
+        // In development mode, use the mock user ID
+        userId = getDevUserId();
+        console.log('Development mode: Using mock user ID:', userId);
+      } else {
+        // Normal authentication flow
+        const { data: { user } } = await supabase.auth.getUser();
+        userId = user?.id || null;
+        console.log('Current authenticated user:', userId);
+      }
 
-      // Load documents with RLS (normal behavior)
-      const { data, error } = await supabase
-        .from("legal_documents")
-        .select("*")
-        .order("created_at", { ascending: false });
+      if (!userId) {
+        console.log('No user ID available, showing empty list');
+        setDocuments([]);
+        return;
+      }
+
+      // Load documents - in dev mode, we'll fetch all documents since RLS might not work
+      let query = supabase.from("legal_documents").select("*");
+      
+      if (shouldBypassAuth()) {
+        // In development mode, fetch all documents for easier testing
+        console.log('Development mode: Fetching all documents');
+      } else {
+        // In production, rely on RLS to filter by user
+        query = query.eq('user_id', userId);
+      }
+      
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
       
-      console.log(`Found ${data?.length || 0} documents visible to current user`);
-      console.log('User IDs in visible documents:', [...new Set(data?.map(d => d.user_id) || [])]);
+      console.log(`Found ${data?.length || 0} documents`);
+      if (data && data.length > 0) {
+        console.log('Document user IDs:', [...new Set(data.map(d => d.user_id))]);
+      }
       
       setDocuments(data || []);
     } catch (error: any) {
+      console.error('Error loading documents:', error);
       toast({
         title: "Failed to load documents",
         description: error.message,
