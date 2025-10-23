@@ -22,9 +22,6 @@ export interface DocumentMetadata {
   file_type: string;
   extracted_text: string;
   summary?: string;
-  legal_entities?: any[];
-  case_citations?: any[];
-  legal_concepts?: string[];
   metadata?: any;
 }
 
@@ -71,21 +68,21 @@ export class UnifiedDocumentProcessor {
       console.log(`Uploaded to GCS: ${uploadResult.filename}`);
 
       // Step 4: Store metadata in Supabase (no physical file duplication)
-      const documentMetadata: DocumentMetadata = {
+      const documentMetadata = {
         title: metadata.title || file.name.replace(/\.[^/.]+$/, ""),
         file_name: file.name,
         file_path: uploadResult.filename!, // GCS path
         file_type: file.type,
         extracted_text: extractedText,
         summary: aiAnalysis.summary,
-        legal_entities: aiAnalysis.legal_entities,
-        case_citations: aiAnalysis.case_citations,
-        legal_concepts: aiAnalysis.legal_concepts,
         metadata: {
           ...metadata.metadata,
           processed_at: new Date().toISOString(),
           ai_confidence: aiAnalysis.confidence,
-          source: metadata.metadata?.source || 'manual_upload'
+          source: metadata.metadata?.source || 'manual_upload',
+          legal_entities: aiAnalysis.legal_entities,
+          case_citations: aiAnalysis.case_citations,
+          legal_concepts: aiAnalysis.legal_concepts,
         }
       };
 
@@ -195,9 +192,9 @@ export class UnifiedDocumentProcessor {
         updated_at: document.updated_at,
         metadata: document.metadata,
         chunks: [], // Could be generated here if needed
-        legal_entities: document.legal_entities || [],
-        case_citations: document.case_citations || [],
-        legal_concepts: document.legal_concepts || []
+        legal_entities: document.metadata?.legal_entities || [],
+        case_citations: document.metadata?.case_citations || [],
+        legal_concepts: document.metadata?.legal_concepts || []
       };
 
       await this.elasticsearchService.indexDocument(esDocument);
