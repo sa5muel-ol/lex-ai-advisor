@@ -6,7 +6,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { GoogleCloudStorageService } from "./GoogleCloudStorageService";
 import { GeminiService } from "./GeminiService";
-import { PDFTextExtractor } from "./PDFTextExtractor";
+import PDFTextExtractor from "./PDFTextExtractor";
 import { BrowserElasticsearchService } from "./BrowserElasticsearchService";
 
 export interface DocumentProcessingResult {

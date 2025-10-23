@@ -14,6 +14,7 @@ import { MassIngestionInterface } from "@/components/MassIngestionInterface";
 import { SyncInterface } from "@/components/SyncInterface";
 import GCPCleanupInterface from "@/components/GCPCleanupInterface";
 import { useTheme } from "@/providers/ThemeProvider";
+import { shouldBypassAuth } from "@/lib/devMode";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<"search" | "ai-search" | "upload" | "documents" | "mass-ingestion" | "sync" | "cleanup" | "settings">("ai-search");
@@ -22,8 +23,15 @@ const Dashboard = () => {
   const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+    if (shouldBypassAuth()) {
+      // In development mode, just navigate to auth page
+      console.log("🚀 Development mode: Simulating sign out");
+      navigate("/auth");
+    } else {
+      // Normal sign out for production
+      await supabase.auth.signOut();
+      navigate("/auth");
+    }
   };
 
   const toggleTheme = () => {

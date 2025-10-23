@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Scale, Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { shouldBypassAuth } from "@/lib/devMode";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -154,6 +155,13 @@ const Auth = () => {
           </div>
           <div>
             <CardDescription>AI-Powered Legal Research Platform</CardDescription>
+            {shouldBypassAuth() && (
+              <div className="mt-2 p-2 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-md">
+                <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                  🚀 Development Mode: Authentication bypassed on localhost
+                </p>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
