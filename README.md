@@ -336,7 +336,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🤝 Support
 
-For support, email support@lexaiadvisor.com or join our community Discord.
+For support, email ninsiimasam256@gmail.com.
 
 ## 🚀 Roadmap
 
