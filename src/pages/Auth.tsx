@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Scale, Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -47,7 +48,7 @@ const Auth = () => {
     } else {
       toast({
         title: "Welcome back!",
-        description: "Successfully signed in to LegalSearch AI",
+        description: "Successfully signed in to nomosanalytics",
       });
       navigate("/");
     }
@@ -149,12 +150,9 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center">
-            <div className="p-3 bg-primary rounded-lg">
-              <Scale className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <Logo size="lg" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">LegalSearch AI</CardTitle>
             <CardDescription>AI-Powered Legal Research Platform</CardDescription>
           </div>
         </CardHeader>
