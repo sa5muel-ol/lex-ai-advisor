@@ -11,8 +11,8 @@ app.use(cors({
   origin: [
     'http://localhost:8080',
     'http://127.0.0.1:8080',
-    'https://juristinsight.samuelninsiima.com',
-    'http://juristinsight.samuelninsiima.com'
+    'https://juristinsight.com',
+    'http://juristinsight.com'
   ],
   credentials: true
 }));

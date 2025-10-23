@@ -45,7 +45,7 @@ VITE_GEMINI_API_KEY=your-gemini-api-key
 VITE_COURT_LISTENER_API_KEY=your-court-listener-api-key
 
 # Proxy Server Configuration
-VITE_PROXY_SERVER_URL=https://juristinsight.samuelninsiima.com
+VITE_PROXY_SERVER_URL=https://juristinsight.com
 
 # Elasticsearch
 VITE_ELASTICSEARCH_URL=http://localhost:9200
