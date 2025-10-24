@@ -418,12 +418,16 @@ export const DocumentList = () => {
                 )}
                 
                 {/* AI Summary Generation Button */}
-                {!doc.summary && doc.extracted_text && (
+                {(!doc.summary || doc.summary === "Unable to generate summary") && doc.extracted_text && (
                   <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-semibold text-xs sm:text-sm text-blue-900 dark:text-blue-100">No AI Summary</h4>
-                        <p className="text-xs text-blue-700 dark:text-blue-300">Generate an AI summary for this document</p>
+                        <h4 className="font-semibold text-xs sm:text-sm text-blue-900 dark:text-blue-100">
+                          {!doc.summary ? "No AI Summary" : "Failed Summary"}
+                        </h4>
+                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                          {!doc.summary ? "Generate an AI summary for this document" : "Retry AI summary generation"}
+                        </p>
                       </div>
                       <Button
                         size="sm"
