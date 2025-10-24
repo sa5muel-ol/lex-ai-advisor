@@ -8,11 +8,12 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { CourtListenerService } from '@/services/CourtListenerService';
 import { SettingsService } from '@/services/SettingsService';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Download, Search, Database, FileText, Clock, AlertTriangle, Eye, CheckSquare, Square } from 'lucide-react';
+import { Calendar, Download, Search, Database, FileText, Clock, AlertTriangle, Eye, CheckSquare, Square, EyeOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -37,6 +38,8 @@ interface IngestionStats {
 export const MassIngestionInterface: React.FC = () => {
   const { toast } = useToast();
   const [apiKey, setApiKey] = useState('');
+  const [useSystemKey, setUseSystemKey] = useState(!!import.meta.env.VITE_COURT_LISTENER_API_KEY);
+  const [showApiKey, setShowApiKey] = useState(false);
   const [courts, setCourts] = useState<Court[]>([]);
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [selectedCourt, setSelectedCourt] = useState('');
@@ -55,14 +58,38 @@ export const MassIngestionInterface: React.FC = () => {
 
   useEffect(() => {
     loadSettings();
-  }, []);
+  }, [useSystemKey]);
 
   const loadSettings = async () => {
     const settings = SettingsService.loadSettings();
-    if (settings.courtListenerApiKey) {
+    const systemKey = import.meta.env.VITE_COURT_LISTENER_API_KEY;
+    
+    if (useSystemKey && systemKey) {
+      setApiKey(systemKey);
+      await initializeService(systemKey);
+    } else if (settings.courtListenerApiKey) {
       setApiKey(settings.courtListenerApiKey);
       await initializeService(settings.courtListenerApiKey);
     }
+  };
+
+  const toggleSystemKey = () => {
+    const newUseSystemKey = !useSystemKey;
+    setUseSystemKey(newUseSystemKey);
+
+    if (newUseSystemKey) {
+      const systemKey = import.meta.env.VITE_COURT_LISTENER_API_KEY;
+      if (systemKey) {
+        setApiKey(systemKey);
+        initializeService(systemKey);
+      }
+    } else {
+      setApiKey('');
+    }
+  };
+
+  const toggleApiKeyVisibility = () => {
+    setShowApiKey(!showApiKey);
   };
 
   const initializeService = async (key: string) => {
@@ -288,20 +315,60 @@ export const MassIngestionInterface: React.FC = () => {
           </Alert>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="api-key">Court Listener API Key</Label>
-            <div className="flex gap-2">
-              <Input
-                id="api-key"
-                type="password"
-                placeholder="Enter your Court Listener API key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-              <Button onClick={handleApiKeySave} disabled={!apiKey}>
-                Save
-              </Button>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="api-key" className="text-base font-medium">
+                Court Listener API Key
+              </Label>
             </div>
+            
+            {/* System Key Toggle */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="court-listener-system-key"
+                checked={useSystemKey}
+                onCheckedChange={toggleSystemKey}
+              />
+              <Label htmlFor="court-listener-system-key" className="text-sm">
+                {useSystemKey ? 'Using system-provided key' : 'Use custom key'}
+              </Label>
+            </div>
+            
+            {!useSystemKey && (
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Input
+                    id="api-key"
+                    type={showApiKey ? "text" : "password"}
+                    placeholder="Enter your Court Listener API key"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="pr-20"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1 h-8 w-8 p-0"
+                    onClick={toggleApiKeyVisibility}
+                  >
+                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <Button onClick={handleApiKeySave} disabled={!apiKey}>
+                  Save
+                </Button>
+              </div>
+            )}
+            
+            {useSystemKey && (
+              <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  ✅ Using system-provided Court Listener key
+                </p>
+              </div>
+            )}
+            
             <p className="text-sm text-muted-foreground">
               Get your API key from{' '}
               <a href="https://www.courtlistener.com/api/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">

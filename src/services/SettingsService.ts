@@ -71,14 +71,35 @@ export class SettingsService {
   static loadSettings(): Settings {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
+      let settings = this.getDefaultSettings();
+      
       if (stored) {
         const parsed = JSON.parse(stored);
-        return { ...this.getDefaultSettings(), ...parsed };
+        settings = { ...settings, ...parsed };
       }
+      
+      // Always override with environment variables if they exist
+      if (import.meta.env.VITE_ELASTICSEARCH_URL) {
+        settings.elasticsearchUrl = import.meta.env.VITE_ELASTICSEARCH_URL;
+      }
+      if (import.meta.env.VITE_GEMINI_API_KEY) {
+        settings.geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      }
+      if (import.meta.env.VITE_COURT_LISTENER_API_KEY) {
+        settings.courtListenerApiKey = import.meta.env.VITE_COURT_LISTENER_API_KEY;
+      }
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        settings.supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      }
+      if (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+        settings.supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      }
+      
+      return settings;
     } catch (error) {
       console.error('Error loading settings:', error);
+      return this.getDefaultSettings();
     }
-    return this.getDefaultSettings();
   }
 
   static saveSettings(settings: Settings): void {

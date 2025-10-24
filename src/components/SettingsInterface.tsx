@@ -250,7 +250,7 @@ export const SettingsInterface = () => {
             {useSystemKeys.gemini && (
               <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <p className="text-sm text-green-700 dark:text-green-300">
-                  ✅ Using system-provided Gemini API key from environment variables
+                  ✅ Using system-provided Gemini key
                 </p>
               </div>
             )}
@@ -444,7 +444,7 @@ export const SettingsInterface = () => {
             {useSystemKeys.courtListener && (
               <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <p className="text-sm text-green-700 dark:text-green-300">
-                  ✅ Using system-provided Court Listener API key from environment variables
+                  ✅ Using system-provided Court Listener key
                 </p>
               </div>
             )}
