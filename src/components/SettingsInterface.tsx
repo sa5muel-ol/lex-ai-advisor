@@ -31,6 +31,10 @@ export const SettingsInterface = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
+  const [useSystemKeys, setUseSystemKeys] = useState<Record<string, boolean>>({
+    gemini: !!import.meta.env.VITE_GEMINI_API_KEY,
+    courtListener: !!import.meta.env.VITE_COURT_LISTENER_API_KEY,
+  });
   
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
@@ -110,6 +114,28 @@ export const SettingsInterface = () => {
     }));
   };
 
+  const toggleSystemKey = (key: 'gemini' | 'courtListener') => {
+    const newUseSystemKeys = { ...useSystemKeys };
+    newUseSystemKeys[key] = !newUseSystemKeys[key];
+    setUseSystemKeys(newUseSystemKeys);
+
+    // If switching to system key, clear the custom key
+    if (newUseSystemKeys[key]) {
+      if (key === 'gemini') {
+        setSettings(prev => ({ ...prev, geminiApiKey: import.meta.env.VITE_GEMINI_API_KEY || '' }));
+      } else if (key === 'courtListener') {
+        setSettings(prev => ({ ...prev, courtListenerApiKey: import.meta.env.VITE_COURT_LISTENER_API_KEY || '' }));
+      }
+    } else {
+      // If switching to custom key, clear the field for user input
+      if (key === 'gemini') {
+        setSettings(prev => ({ ...prev, geminiApiKey: '' }));
+      } else if (key === 'courtListener') {
+        setSettings(prev => ({ ...prev, courtListenerApiKey: '' }));
+      }
+    }
+  };
+
   const getStatusIcon = (configured: boolean, valid: boolean) => {
     if (!configured) return <XCircle className="w-4 h-4 text-gray-400" />;
     if (valid) return <CheckCircle className="w-4 h-4 text-green-500" />;
@@ -175,7 +201,21 @@ export const SettingsInterface = () => {
                 </Badge>
               </div>
             </div>
-            <div className="flex gap-2">
+            
+            {/* System Key Toggle */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="gemini-system-key"
+                checked={useSystemKeys.gemini}
+                onCheckedChange={() => toggleSystemKey('gemini')}
+              />
+              <Label htmlFor="gemini-system-key" className="text-sm">
+                {useSystemKeys.gemini ? 'Using system-provided key' : 'Use custom key'}
+              </Label>
+            </div>
+            
+            {!useSystemKeys.gemini && (
+              <div className="flex gap-2">
               <div className="flex-1 relative">
                 <Input
                   id="gemini-key"
@@ -205,6 +245,15 @@ export const SettingsInterface = () => {
                 </Button>
               )}
             </div>
+            
+            {useSystemKeys.gemini && (
+              <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  ✅ Using system-provided Gemini API key from environment variables
+                </p>
+              </div>
+            )}
+            
             <p className="text-sm text-muted-foreground">
               Get your API key from{" "}
               <a 
@@ -323,6 +372,93 @@ export const SettingsInterface = () => {
                 />
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Court Listener API */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="w-5 h-5" />
+            Court Listener API
+          </CardTitle>
+          <CardDescription>
+            Configure Court Listener API key for legal document ingestion
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="court-listener-key" className="text-base font-medium">
+                Court Listener API Key
+              </Label>
+            </div>
+            
+            {/* System Key Toggle */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="court-listener-system-key"
+                checked={useSystemKeys.courtListener}
+                onCheckedChange={() => toggleSystemKey('courtListener')}
+              />
+              <Label htmlFor="court-listener-system-key" className="text-sm">
+                {useSystemKeys.courtListener ? 'Using system-provided key' : 'Use custom key'}
+              </Label>
+            </div>
+            
+            {!useSystemKeys.courtListener && (
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Input
+                    id="court-listener-key"
+                    type={showApiKeys.courtListener ? "text" : "password"}
+                    placeholder="Enter your Court Listener API key..."
+                    value={settings.courtListenerApiKey}
+                    onChange={(e) => setSettings(prev => ({ ...prev, courtListenerApiKey: e.target.value }))}
+                    className="pr-20"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1 h-8 w-8 p-0"
+                    onClick={() => toggleApiKeyVisibility('courtListener')}
+                  >
+                    {showApiKeys.courtListener ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+                {settings.courtListenerApiKey && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => clearApiKey('courtListener')}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {useSystemKeys.courtListener && (
+              <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  ✅ Using system-provided Court Listener API key from environment variables
+                </p>
+              </div>
+            )}
+            
+            <p className="text-sm text-muted-foreground">
+              Get your API key from{" "}
+              <a 
+                href="https://www.courtlistener.com/api/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Court Listener API
+              </a>
+            </p>
           </div>
         </CardContent>
       </Card>

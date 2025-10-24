@@ -45,12 +45,13 @@ export class SettingsService {
 
   static getDefaultSettings(): Settings {
     return {
-      geminiApiKey: '',
-      elasticsearchUrl: 'http://localhost:9200',
+      geminiApiKey: import.meta.env.VITE_GEMINI_API_KEY || '',
+      elasticsearchUrl: import.meta.env.VITE_ELASTICSEARCH_URL || 'http://localhost:9200',
       elasticsearchUsername: '',
       elasticsearchPassword: '',
-      supabaseUrl: '',
-      supabaseAnonKey: '',
+      supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
+      supabaseAnonKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '',
+      courtListenerApiKey: import.meta.env.VITE_COURT_LISTENER_API_KEY || '',
       theme: 'system',
       searchPreferences: {
         defaultSearchType: 'ai',
