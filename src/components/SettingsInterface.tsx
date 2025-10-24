@@ -245,6 +245,7 @@ export const SettingsInterface = () => {
                 </Button>
               )}
             </div>
+            )}
             
             {useSystemKeys.gemini && (
               <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
