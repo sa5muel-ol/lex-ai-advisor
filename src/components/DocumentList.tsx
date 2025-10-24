@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2, Download, Eye, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileText, Loader2, Download, Eye, Trash2, ChevronLeft, ChevronRight, Sparkles, CheckSquare, Square } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getServiceUrl } from "@/lib/environment";
 import { Document, Page, pdfjs } from 'react-pdf';
 import { shouldBypassAuth, getDevUserId } from "@/lib/devMode";
+import { GeminiService } from "@/services/GeminiService";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
@@ -37,7 +39,11 @@ export const DocumentList = () => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [fileType, setFileType] = useState<string>('application/pdf');
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+  const geminiService = new GeminiService();
 
   useEffect(() => {
     loadDocuments();
@@ -120,6 +126,94 @@ export const DocumentList = () => {
         return <Badge variant="outline" className="bg-info/10 text-info">Redacted</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  // Multi-select functions
+  const toggleDocumentSelection = (docId: string) => {
+    const newSelected = new Set(selectedDocuments);
+    if (newSelected.has(docId)) {
+      newSelected.delete(docId);
+    } else {
+      newSelected.add(docId);
+    }
+    setSelectedDocuments(newSelected);
+  };
+
+  const selectAllDocuments = () => {
+    setSelectedDocuments(new Set(documents.map(doc => doc.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedDocuments(new Set());
+  };
+
+  const deleteSelectedDocuments = async () => {
+    if (selectedDocuments.size === 0) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('legal_documents')
+        .delete()
+        .in('id', Array.from(selectedDocuments));
+
+      if (error) throw error;
+
+      toast({
+        title: "Documents deleted",
+        description: `Successfully deleted ${selectedDocuments.size} document(s)`,
+      });
+
+      setSelectedDocuments(new Set());
+      loadDocuments(); // Reload the list
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // AI Summary generation
+  const generateSummary = async (doc: Document) => {
+    if (!doc.extracted_text) {
+      toast({
+        title: "Cannot generate summary",
+        description: "No extracted text available for this document",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingSummary(doc.id);
+    try {
+      const summary = await geminiService.generateSummary(doc.extracted_text);
+      
+      const { error } = await supabase
+        .from('legal_documents')
+        .update({ summary })
+        .eq('id', doc.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Summary generated",
+        description: "AI summary has been added to the document",
+      });
+
+      loadDocuments(); // Reload to show updated summary
+    } catch (error: any) {
+      toast({
+        title: "Summary generation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingSummary(null);
     }
   };
 
@@ -239,6 +333,47 @@ export const DocumentList = () => {
         </div>
       </div>
 
+      {/* Multi-select controls */}
+      {documents.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-muted/50 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={selectedDocuments.size === documents.length}
+              onCheckedChange={(checked) => checked ? selectAllDocuments() : clearSelection()}
+            />
+            <span className="text-sm font-medium">
+              {selectedDocuments.size === documents.length ? 'Deselect All' : 'Select All'}
+            </span>
+          </div>
+          
+          {selectedDocuments.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {selectedDocuments.size} selected
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={deleteSelectedDocuments}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Selected
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {documents.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -252,14 +387,21 @@ export const DocumentList = () => {
             <Card key={doc.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="flex items-start gap-2 text-base sm:text-lg">
-                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span className="break-words">{doc.title}</span>
-                    </CardTitle>
-                    <CardDescription className="mt-1 text-xs sm:text-sm">
-                      <span className="break-all">{doc.file_name}</span> • {new Date(doc.created_at).toLocaleDateString()}
-                    </CardDescription>
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <Checkbox
+                      checked={selectedDocuments.has(doc.id)}
+                      onCheckedChange={() => toggleDocumentSelection(doc.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="flex items-start gap-2 text-base sm:text-lg">
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="break-words">{doc.title}</span>
+                      </CardTitle>
+                      <CardDescription className="mt-1 text-xs sm:text-sm">
+                        <span className="break-all">{doc.file_name}</span> • {new Date(doc.created_at).toLocaleDateString()}
+                      </CardDescription>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-1 sm:gap-2">
                     {getStatusBadge(doc.status)}
@@ -272,6 +414,37 @@ export const DocumentList = () => {
                   <div className="bg-secondary/50 rounded-lg p-3 sm:p-4">
                     <h4 className="font-semibold text-xs sm:text-sm text-foreground mb-2">AI Summary</h4>
                     <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{doc.summary}</p>
+                  </div>
+                )}
+                
+                {/* AI Summary Generation Button */}
+                {!doc.summary && doc.extracted_text && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-xs sm:text-sm text-blue-900 dark:text-blue-100">No AI Summary</h4>
+                        <p className="text-xs text-blue-700 dark:text-blue-300">Generate an AI summary for this document</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => generateSummary(doc)}
+                        disabled={isGeneratingSummary === doc.id}
+                        className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                      >
+                        {isGeneratingSummary === doc.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate Summary
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row gap-2">
