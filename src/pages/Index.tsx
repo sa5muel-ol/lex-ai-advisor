@@ -5,7 +5,7 @@ import { Session } from "@supabase/supabase-js";
 import Dashboard from "./Dashboard";
 import Auth from "./Auth";
 import { Loader2 } from "lucide-react";
-import { shouldBypassAuth, getDevUserId, getDevUserEmail } from "@/lib/devMode";
+import { shouldBypassAuth, getDevUserId, getDevUserEmail, getGuestUserId, getGuestUserEmail, isGuestUser } from "@/lib/devMode";
 
 const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -13,20 +13,21 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we should bypass auth in development
+    // Check if we should bypass auth in development or guest mode
     if (shouldBypassAuth()) {
-      console.log("🚀 Development mode: Bypassing authentication");
+      const isGuest = isGuestUser();
+      console.log(`🚀 ${isGuest ? 'Guest mode' : 'Development mode'}: Bypassing authentication`);
       
-      // Create a mock session for development
+      // Create a mock session for development or guest mode
       const mockSession: Session = {
-        access_token: 'dev-token',
-        refresh_token: 'dev-refresh-token',
+        access_token: isGuest ? 'guest-token' : 'dev-token',
+        refresh_token: isGuest ? 'guest-refresh-token' : 'dev-refresh-token',
         expires_in: 3600,
         expires_at: Math.floor(Date.now() / 1000) + 3600,
         token_type: 'bearer',
         user: {
-          id: getDevUserId(),
-          email: getDevUserEmail(),
+          id: isGuest ? getGuestUserId() : getDevUserId(),
+          email: isGuest ? getGuestUserEmail() : getDevUserEmail(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           aud: 'authenticated',

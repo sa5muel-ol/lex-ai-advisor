@@ -14,7 +14,7 @@ import { MassIngestionInterface } from "@/components/MassIngestionInterface";
 import { SyncInterface } from "@/components/SyncInterface";
 import GCPCleanupInterface from "@/components/GCPCleanupInterface";
 import { useTheme } from "@/providers/ThemeProvider";
-import { shouldBypassAuth } from "@/lib/devMode";
+import { shouldBypassAuth, isGuestUser } from "@/lib/devMode";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<"search" | "ai-search" | "upload" | "documents" | "mass-ingestion" | "sync" | "cleanup" | "settings">("ai-search");
@@ -82,6 +82,9 @@ const Dashboard = () => {
               <div>
                 <Logo size="md" />
                 <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">AI-Powered Legal Research</p>
+                {isGuestUser() && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">👥 Guest Mode</p>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1 sm:gap-2">

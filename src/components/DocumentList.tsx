@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getServiceUrl } from "@/lib/environment";
 import { Document, Page, pdfjs } from 'react-pdf';
-import { shouldBypassAuth, getDevUserId } from "@/lib/devMode";
+import { shouldBypassAuth, getCurrentUserId, isGuestUser } from "@/lib/devMode";
 import { GeminiService } from "@/services/GeminiService";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -54,9 +54,9 @@ export const DocumentList = () => {
       let userId: string | null = null;
       
       if (shouldBypassAuth()) {
-        // In development mode, use the mock user ID
-        userId = getDevUserId();
-        console.log('Development mode: Using mock user ID:', userId);
+        // In development or guest mode, use the appropriate user ID
+        userId = getCurrentUserId();
+        console.log(`${isGuestUser() ? 'Guest' : 'Development'} mode: Using user ID:`, userId);
       } else {
         // Normal authentication flow
         const { data: { user } } = await supabase.auth.getUser();
