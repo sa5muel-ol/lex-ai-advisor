@@ -69,7 +69,7 @@ VITE_SUPABASE_URL=your-supabase-url
 VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
 
 # Google Cloud Storage
-VITE_GCS_BUCKET_NAME=your-gcs-bucket
+VITE_GCS_BUCKET_NAME=lex-legal-documents-bucket
 VITE_GOOGLE_CLOUD_API_KEY=your-gcs-api-key
 
 # Gemini AI
@@ -82,10 +82,13 @@ VITE_COURT_LISTENER_API_KEY=your-court-listener-api-key
 VITE_PROXY_SERVER_URL=${PROXY_URL}
 VITE_ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
 EOF
-    echo "⚠️  Please update .env file with your actual API keys before running the application."
+    echo "⚠️  .env file created with placeholder values."
+    echo "🔧 To provide API keys, run: ./setup-production-env.sh"
     echo "✅ URLs auto-configured for ${ENVIRONMENT} environment:"
     echo "   🌐 Proxy: ${PROXY_URL}"
     echo "   🔍 Elasticsearch: ${ELASTICSEARCH_URL}"
+else
+    echo "📄 .env file already exists - using existing configuration"
 fi
 
 # -----------------------------------------------------
