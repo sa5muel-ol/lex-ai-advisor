@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Lex AI Advisor Deployment Script (Docker Compose v2)
+# juristinsight Deployment Script (Docker Compose v2)
 # Works on Linux VM with Docker Engine 20.10+ and Compose plugin 2.x+
 
 set -e  # Exit immediately on error
@@ -36,7 +36,7 @@ echo "🔧 Environment: $ENVIRONMENT"
 echo "🌐 Proxy URL: $PROXY_URL"
 echo "🔍 Elasticsearch URL: $ELASTICSEARCH_URL"
 
-echo "🚀 Deploying Lex AI Advisor (service: app)..."
+echo "🚀 Deploying juristinsight (service: app)..."
 
 # -----------------------------------------------------
 # 1️⃣  Check prerequisites

@@ -1,10 +1,10 @@
-# Lex AI Advisor 🏛️⚖️
+# juristinsight 🏛️⚖️
 
 A comprehensive legal document management and AI-powered search platform that revolutionizes how legal professionals discover, analyze, and leverage case law and legal documents.
 
 ## 🌟 Overview
 
-Lex AI Advisor is a full-stack legal technology platform that combines modern web technologies with AI to provide intelligent document management, semantic search, and legal analysis capabilities. Built for law firms, legal departments, and legal researchers who need to efficiently process and search through large volumes of legal documents.
+juristinsight is a full-stack legal technology platform that combines modern web technologies with AI to provide intelligent document management, semantic search, and legal analysis capabilities. Built for law firms, legal departments, and legal researchers who need to efficiently process and search through large volumes of legal documents.
 
 ## 🏗️ Architecture
 
@@ -150,8 +150,8 @@ The application is fully containerized and can be deployed on any VM or cloud pl
 #### Quick Deployment
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/lex-ai-advisor.git
-cd lex-ai-advisor
+git clone https://github.com/your-username/juristinsight.git
+cd juristinsight
 
 # Configure environment variables
 cp .env.example .env

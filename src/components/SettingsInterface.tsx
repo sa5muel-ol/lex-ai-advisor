@@ -157,7 +157,7 @@ export const SettingsInterface = () => {
             Settings
           </h1>
           <p className="text-muted-foreground mt-2">
-            Configure your API keys and preferences for Lex AI Advisor
+            Configure your API keys and preferences for juristinsight
           </p>
         </div>
         <div className="flex gap-2">

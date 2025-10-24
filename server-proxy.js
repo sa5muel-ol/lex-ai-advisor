@@ -33,7 +33,7 @@ app.post('/download', async (req, res) => {
     
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; LexAI-Advisor/1.0)',
+        'User-Agent': 'Mozilla/5.0 (compatible; juristinsight/1.0)',
         ...(apiKey && { 'Authorization': `Token ${apiKey}` })
       }
     });
