@@ -6,14 +6,15 @@
 set -e  # Exit immediately on error
 
 # Auto-detect environment
-if [ -f "package.json" ] && grep -q '"dev"' package.json; then
-    # Check if we're running in Docker
-    if [ -f "/.dockerenv" ] || [ -n "$DOCKER_CONTAINER" ]; then
-        ENVIRONMENT="production"
-        echo "🐳 Detected Docker production environment"
-    else
+# If we're on a server/VM (not localhost), assume production
+if [ -f "package.json" ]; then
+    # Check if we're running on localhost/development machine
+    if [[ "$HOSTNAME" == *"localhost"* ]] || [[ "$HOSTNAME" == *"MacBook"* ]] || [[ "$HOSTNAME" == *"DESKTOP"* ]]; then
         ENVIRONMENT="development"
         echo "💻 Detected local development environment"
+    else
+        ENVIRONMENT="production"
+        echo "🚀 Detected production environment (VM/Server)"
     fi
 else
     ENVIRONMENT="production"
