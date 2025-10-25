@@ -32,3 +32,5 @@ echo "🚀 After creating the .env file, restart the dev server:"
 echo "   pkill -f 'vite' && npm run dev"
 
 
+
+

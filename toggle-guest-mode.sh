@@ -55,3 +55,4 @@ else
     echo "🚀 To apply changes, restart the application:"
     echo "   docker-compose down && docker-compose up -d"
 fi
+
