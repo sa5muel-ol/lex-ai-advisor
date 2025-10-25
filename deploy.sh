@@ -79,7 +79,7 @@ VITE_GEMINI_API_KEY=your-gemini-api-key
 VITE_COURT_LISTENER_API_KEY=your-court-listener-api-key
 
 # Guest Mode (set to 'true' to enable demo access without authentication)
-VITE_GUEST_MODE_ENABLED=false
+VITE_GUEST_MODE_ENABLED=true
 
 # Auto-detected URLs
 VITE_PROXY_SERVER_URL=${PROXY_URL}
