@@ -262,8 +262,24 @@ export class GCPMetadataSyncService {
     try {
       const gcpFiles = await this.getGCPFiles();
       
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
+      // Get the current authenticated user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      let userId = user?.id;
+      if (authError || !user) {
+        // Check if we're in guest mode or development mode
+        if (shouldBypassAuth()) {
+          userId = getCurrentUserId();
+          console.log(`Using ${isGuestUser() ? 'guest' : 'development'} user ID for sync status:`, userId);
+        } else {
+          console.warn('User not authenticated during sync status check:', authError?.message);
+          return {
+            gcpFiles: gcpFiles.length,
+            supabaseRecords: 0,
+            syncIssues: gcpFiles.length
+          };
+        }
+      }
 
       const { data: supabaseDocs, error } = await supabase
         .from('legal_documents')
