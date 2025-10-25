@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Scale, Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { shouldBypassAuth, isGuestUser } from "@/lib/devMode";
+import { shouldBypassAuth, isGuestUser, getGuestUserId, getGuestUserEmail } from "@/lib/devMode";
 
 const Auth = () => {
   const [loading, setLoading] = useState(false);
@@ -118,6 +118,45 @@ const Auth = () => {
     // Note: Don't set loading to false here as the user will be redirected
   };
 
+  const handleGuestMode = async () => {
+    setLoading(true);
+    
+    // Create a mock session for guest mode
+    const mockSession = {
+      access_token: 'guest-token',
+      refresh_token: 'guest-refresh-token',
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: 'bearer',
+      user: {
+        id: getGuestUserId(),
+        email: getGuestUserEmail(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        aud: 'authenticated',
+        role: 'authenticated',
+        email_confirmed_at: new Date().toISOString(),
+        last_sign_in_at: new Date().toISOString(),
+        app_metadata: {},
+        user_metadata: {},
+        identities: [],
+        factors: [],
+      }
+    };
+    
+    // Store the session in localStorage to simulate authentication
+    localStorage.setItem('supabase.auth.token', JSON.stringify(mockSession));
+    
+    toast({
+      title: "Welcome to juristinsight!",
+      description: "You're now logged in as a guest user for demo purposes",
+    });
+    
+    // Navigate to dashboard
+    navigate("/");
+    setLoading(false);
+  };
+
   const handlePasswordReset = async () => {
     if (!email) {
       toast({
@@ -168,11 +207,52 @@ const Auth = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+          <Tabs defaultValue="guest" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="guest">Demo Access</TabsTrigger>
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="guest" className="space-y-4">
+              <div className="text-center space-y-4">
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-center justify-center mb-2">
+                    <Scale className="w-6 h-6 text-green-600 dark:text-green-400 mr-2" />
+                    <h3 className="text-lg font-semibold text-green-900 dark:text-green-100">
+                      Try juristinsight Demo
+                    </h3>
+                  </div>
+                  <p className="text-sm text-green-700 dark:text-green-300 mb-4">
+                    Experience the full platform without creating an account. Perfect for testing and evaluation.
+                  </p>
+                  <Button
+                    onClick={handleGuestMode}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    disabled={loading}
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Loading Demo...
+                      </>
+                    ) : (
+                      <>
+                        <Scale className="w-5 h-5 mr-2" />
+                        Continue as Guest (Demo)
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    <strong>Demo includes:</strong> Document upload, AI search, Elasticsearch, Google Cloud Storage, and all premium features
+                  </p>
+                </div>
+              </div>
+            </TabsContent>
             
             <TabsContent value="signin" className="space-y-4">
               <form onSubmit={handleEmailSignIn} className="space-y-4">

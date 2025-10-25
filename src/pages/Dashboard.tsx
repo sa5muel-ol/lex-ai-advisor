@@ -28,7 +28,25 @@ const Dashboard = () => {
       console.log("🚀 Development mode: Simulating sign out");
       navigate("/auth");
     } else {
-      // Normal sign out for production
+      // Check if it's a guest session
+      const guestSession = localStorage.getItem('supabase.auth.token');
+      if (guestSession) {
+        try {
+          const parsedSession = JSON.parse(guestSession);
+          if (parsedSession.user && parsedSession.user.id === 'guest-user-demo') {
+            // Clear guest session
+            localStorage.removeItem('supabase.auth.token');
+            console.log("🚀 Guest session cleared");
+            navigate("/auth");
+            return;
+          }
+        } catch (error) {
+          console.warn('Failed to parse guest session:', error);
+          localStorage.removeItem('supabase.auth.token');
+        }
+      }
+      
+      // Normal Supabase sign out
       await supabase.auth.signOut();
       navigate("/auth");
     }

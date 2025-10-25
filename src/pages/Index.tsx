@@ -46,6 +46,23 @@ const Index = () => {
       return;
     }
 
+    // Check for guest session in localStorage (from manual guest login)
+    const guestSession = localStorage.getItem('supabase.auth.token');
+    if (guestSession) {
+      try {
+        const parsedSession = JSON.parse(guestSession);
+        if (parsedSession.user && parsedSession.user.id === 'guest-user-demo') {
+          console.log('🚀 Found guest session in localStorage');
+          setSession(parsedSession);
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.warn('Failed to parse guest session from localStorage:', error);
+        localStorage.removeItem('supabase.auth.token');
+      }
+    }
+
     // Normal authentication flow for production
     const {
       data: { subscription },
