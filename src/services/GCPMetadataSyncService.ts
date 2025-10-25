@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { shouldBypassAuth, getCurrentUserId, isGuestUser } from '@/lib/devMode';
 
 export interface GCPFile {
   name: string;
@@ -138,9 +139,15 @@ export class GCPMetadataSyncService {
     
     let userId = user?.id;
     if (authError || !user) {
-      console.warn('User not authenticated during sync, using system user:', authError?.message);
-      // Use a system user ID for unauthenticated sync
-      userId = '00000000-0000-0000-0000-000000000000';
+      // Check if we're in guest mode or development mode
+      if (shouldBypassAuth()) {
+        userId = getCurrentUserId();
+        console.log(`Using ${isGuestUser() ? 'guest' : 'development'} user ID for sync:`, userId);
+      } else {
+        console.warn('User not authenticated during sync, using system user:', authError?.message);
+        // Use a system user ID for unauthenticated sync
+        userId = '00000000-0000-0000-0000-000000000000';
+      }
     }
 
     // Extract title from filename (remove .pdf extension and clean up)

@@ -36,25 +36,8 @@ export const AIEnhancedSearchInterface = () => {
         // Check if sync is needed and sync documents from GCP to Supabase
         const gcpSyncStatus = await gcpSyncService.getSyncStatus();
         if (gcpSyncStatus.syncIssues > 0) {
-          console.log(`GCP sync needed: ${gcpSyncStatus.syncIssues} files need attention`);
-          setSyncing(true);
-          try {
-            const syncResult = await gcpSyncService.syncGCPToSupabase();
-            
-            toast({
-              title: "GCP Sync Complete",
-              description: `Synced ${syncResult.success} documents from GCP to Supabase.`,
-            });
-          } catch (error) {
-            console.error('GCP sync failed:', error);
-            toast({
-              title: "GCP Sync Failed",
-              description: "Failed to sync documents from GCP to Supabase.",
-              variant: "destructive",
-            });
-          } finally {
-            setSyncing(false);
-          }
+          console.log(`GCP sync available: ${gcpSyncStatus.syncIssues} files need attention (auto-sync disabled)`);
+          // Auto-sync disabled - users can manually sync if needed
         } else {
           console.log('GCP documents are already synced to Supabase');
         }
@@ -62,25 +45,8 @@ export const AIEnhancedSearchInterface = () => {
         // Check if sync is needed from Supabase to Elasticsearch
         const elasticsearchSyncStatus = await supabaseSyncService.getSyncStatus();
         if (elasticsearchSyncStatus.syncIssues > 0) {
-          console.log(`Elasticsearch sync needed: ${elasticsearchSyncStatus.syncIssues} documents need indexing`);
-          setSyncing(true);
-          try {
-            const syncResult = await supabaseSyncService.syncSupabaseToElasticsearch();
-            
-            toast({
-              title: "Elasticsearch Sync Complete",
-              description: `Indexed ${syncResult.success} documents from Supabase to Elasticsearch.`,
-            });
-          } catch (error) {
-            console.error('Elasticsearch sync failed:', error);
-            toast({
-              title: "Elasticsearch Sync Failed",
-              description: "Failed to sync documents from Supabase to Elasticsearch.",
-              variant: "destructive",
-            });
-          } finally {
-            setSyncing(false);
-          }
+          console.log(`Elasticsearch sync available: ${elasticsearchSyncStatus.syncIssues} documents need indexing (auto-sync disabled)`);
+          // Auto-sync disabled - users can manually sync if needed
         } else {
           console.log('Documents are already synced to Elasticsearch');
         }
