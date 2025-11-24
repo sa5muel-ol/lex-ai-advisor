@@ -7,6 +7,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
     port: 8080,
+    allowedHosts: [
+      "juristinsight.com",
+      "www.juristinsight.com",
+      "localhost",
+      "127.0.0.1"
+    ],
     hmr: {
       // optional: only needed if you rely on HMR via your domain behind TLS
       // host: "juristinsight.com",
