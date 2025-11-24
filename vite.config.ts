@@ -22,13 +22,18 @@ export default defineConfig(({ mode }) => ({
   },
   preview: {
     host: "0.0.0.0",
-    port: 8080,   // <--- match nginx proxy_pass port
+    port: 4173,  // Port inside Docker container (mapped to 8080 on host)
+    strictPort: false,
+    // Allow all hosts - nginx handles domain routing
+    // Using regex pattern to match any host
     allowedHosts: [
+      ".",
       "juristinsight.com",
       "www.juristinsight.com",
       "localhost",
-      "127.0.0.1"
-    ]
+      "127.0.0.1",
+      /^.*\.juristinsight\.com$/,  // All subdomains
+    ],
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
